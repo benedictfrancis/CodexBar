@@ -4,99 +4,93 @@ import Foundation
 import SweetCookieKit
 #endif
 
-public enum AlibabaTokenPlanProviderDescriptor {
+public enum QwenCloudProviderDescriptor {
     public static let descriptor: ProviderDescriptor = Self.makeDescriptor()
 
     static func makeDescriptor() -> ProviderDescriptor {
         #if os(macOS)
-        let browserOrder: BrowserCookieImportOrder = [
-            .chrome,
-            .chromeBeta,
-            .brave,
-            .edge,
-            .arc,
-            .firefox,
-            .safari,
-        ]
+        let browserOrder: BrowserCookieImportOrder = [.chrome]
         #else
         let browserOrder: BrowserCookieImportOrder? = nil
         #endif
 
         return ProviderDescriptor(
-            id: .alibabatokenplan,
+            id: .qwencloud,
             metadata: ProviderMetadata(
-                id: .alibabatokenplan,
-                displayName: "Alibaba Token Plan",
-                sessionLabel: "Credits",
-                weeklyLabel: "Usage",
+                id: .qwencloud,
+                displayName: "Qwen Cloud",
+                sessionLabel: "5-hour",
+                weeklyLabel: "Weekly",
                 opusLabel: nil,
                 supportsOpus: false,
                 supportsCredits: false,
                 creditsHint: "",
-                toggleTitle: "Show Alibaba Token Plan usage",
-                cliName: "alibaba-token-plan",
+                toggleTitle: "Show Qwen Cloud usage",
+                cliName: "qwen-cloud",
                 defaultEnabled: false,
                 isPrimaryProvider: false,
                 usesAccountFallback: false,
                 browserCookieOrder: browserOrder,
-                dashboardURL: AlibabaTokenPlanUsageFetcher.dashboardURL.absoluteString,
+                dashboardURL: QwenCloudUsageFetcher.dashboardURL.absoluteString,
                 statusPageURL: nil,
-                statusLinkURL: "https://status.aliyun.com"),
+                statusLinkURL: "https://status.alibabacloud.com"),
             branding: ProviderBranding(
-                iconStyle: .alibaba,
-                iconResourceName: "ProviderIcon-alibaba",
-                color: ProviderColor(red: 1.0, green: 106 / 255, blue: 0),
+                iconStyle: .qwencloud,
+                iconResourceName: "ProviderIcon-qwencloud",
+                color: ProviderColor(hex: 0x615CED),
                 confettiPalette: [
-                    ProviderColor(hex: 0xFF6A00),
-                    ProviderColor(hex: 0x0064C8),
+                    ProviderColor(hex: 0x615CED),
+                    ProviderColor(hex: 0x8B86F5),
                     ProviderColor(hex: 0xFFFFFF),
                 ]),
             tokenCost: ProviderTokenCostConfig(
                 supportsTokenCost: false,
-                noDataMessage: { "Alibaba Token Plan cost summary is not supported." }),
-            pace: .calendarMonthResetWindow,
+                noDataMessage: { "Qwen Cloud cost summary is not supported." }),
             fetchPlan: ProviderFetchPlan(
                 sourceModes: [.auto, .web],
                 pipeline: ProviderFetchPipeline(resolveStrategies: self.resolveStrategies)),
             cli: ProviderCLIConfig(
-                name: "alibaba-token-plan",
-                aliases: ["alibaba-token", "bailian-token-plan"],
+                name: "qwen-cloud",
+                aliases: ["qwencloud", "qwen", "qwen-token-plan"],
                 versionDetector: nil))
     }
 
     private static func resolveStrategies(context: ProviderFetchContext) async -> [any ProviderFetchStrategy] {
-        guard context.settings?.alibabaTokenPlan?.cookieSource != .off else { return [] }
+        guard context.settings?.qwenCloud?.cookieSource != .off else { return [] }
         switch context.sourceMode {
         case .auto, .web:
-            return [AlibabaTokenPlanWebFetchStrategy()]
+            return [QwenCloudWebFetchStrategy()]
         case .api, .cli, .oauth:
             return []
         }
     }
 }
 
-struct AlibabaTokenPlanWebFetchStrategy: ProviderFetchStrategy {
-    private static let log = CodexBarLog.logger("alibaba-token-plan")
+struct QwenCloudWebFetchStrategy: ProviderFetchStrategy {
+    private static let log = CodexBarLog.logger("qwen-cloud")
 
-    let id: String = "alibaba-token-plan.web"
+    #if os(macOS)
+    static let browserOrder: BrowserCookieImportOrder = [.chrome]
+    #endif
+
+    let id: String = "qwen-cloud.web"
     let kind: ProviderFetchKind = .web
 
     func isAvailable(_ context: ProviderFetchContext) async -> Bool {
-        guard context.settings?.alibabaTokenPlan?.cookieSource != .off else { return false }
-        let region = context.settings?.alibabaTokenPlan?.apiRegion ?? .international
+        guard context.settings?.qwenCloud?.cookieSource != .off else { return false }
 
-        if AlibabaTokenPlanSettingsReader.cookieHeader(environment: context.env) != nil {
+        if QwenCloudSettingsReader.cookieHeader(environment: context.env) != nil {
             return true
         }
 
-        if let settings = context.settings?.alibabaTokenPlan,
+        if let settings = context.settings?.qwenCloud,
            settings.cookieSource == .manual
         {
             return CookieHeaderNormalizer.normalize(settings.manualCookieHeader) != nil
         }
 
         #if os(macOS)
-        if let cached = Self.cachedCookieEntry(region: region),
+        if let cached = CookieHeaderCache.load(provider: .qwencloud),
            !cached.cookieHeader.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         {
             return true
@@ -108,26 +102,23 @@ struct AlibabaTokenPlanWebFetchStrategy: ProviderFetchStrategy {
     }
 
     func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
-        let cookieSource = context.settings?.alibabaTokenPlan?.cookieSource ?? .auto
-        let region = context.settings?.alibabaTokenPlan?.apiRegion ?? .international
-        let cookieHeaders = try Self.resolveCookieHeaders(context: context, allowCached: true, region: region)
+        let cookieSource = context.settings?.qwenCloud?.cookieSource ?? .auto
+        let cookieHeaders = try Self.resolveCookieHeaders(context: context, allowCached: true)
         do {
-            let usage = try await AlibabaTokenPlanUsageFetcher.fetchUsage(
+            let usage = try await QwenCloudUsageFetcher.fetchUsage(
                 apiCookieHeader: cookieHeaders.apiCookieHeader,
                 dashboardCookieHeader: cookieHeaders.dashboardCookieHeader,
-                region: region,
                 environment: context.env)
             return self.makeResult(usage: usage.toUsageSnapshot(), sourceLabel: "web")
-        } catch let error as AlibabaTokenPlanUsageError
+        } catch let error as QwenCloudUsageError
             where error.isCredentialFailure && cookieSource != .manual
         {
             #if os(macOS)
-            CookieHeaderCache.clear(provider: .alibabatokenplan, scope: region.cookieCacheScope)
-            let refreshedHeaders = try Self.resolveCookieHeaders(context: context, allowCached: false, region: region)
-            let usage = try await AlibabaTokenPlanUsageFetcher.fetchUsage(
+            CookieHeaderCache.clear(provider: .qwencloud)
+            let refreshedHeaders = try Self.resolveCookieHeaders(context: context, allowCached: false)
+            let usage = try await QwenCloudUsageFetcher.fetchUsage(
                 apiCookieHeader: refreshedHeaders.apiCookieHeader,
                 dashboardCookieHeader: refreshedHeaders.dashboardCookieHeader,
-                region: region,
                 environment: context.env)
             return self.makeResult(usage: usage.toUsageSnapshot(), sourceLabel: "web")
             #else
@@ -141,24 +132,22 @@ struct AlibabaTokenPlanWebFetchStrategy: ProviderFetchStrategy {
     }
 
     static func resolveCookieHeader(context: ProviderFetchContext, allowCached: Bool) throws -> String {
-        try self.resolveCookieHeaders(context: context, allowCached: allowCached, region: .international)
-            .apiCookieHeader
+        try self.resolveCookieHeaders(context: context, allowCached: allowCached).apiCookieHeader
     }
 
     static func resolveCookieHeaders(
         context: ProviderFetchContext,
-        allowCached: Bool,
-        region: AlibabaTokenPlanAPIRegion = .international) throws -> AlibabaTokenPlanCookieHeaders
+        allowCached: Bool) throws -> QwenCloudCookieHeaders
     {
-        if let settings = context.settings?.alibabaTokenPlan,
+        if let settings = context.settings?.qwenCloud,
            settings.cookieSource == .manual
         {
-            guard let headers = AlibabaTokenPlanCookieHeaders(singleHeader: settings.manualCookieHeader) else {
-                self.log.warning("Alibaba Token Plan manual cookie header is invalid")
-                throw AlibabaTokenPlanSettingsError.invalidCookie
+            guard let headers = QwenCloudCookieHeaders(singleHeader: settings.manualCookieHeader) else {
+                self.log.warning("Qwen Cloud manual cookie header is invalid")
+                throw QwenCloudSettingsError.invalidCookie
             }
             Self.log.info(
-                "Alibaba Token Plan using manual cookie header",
+                "Qwen Cloud using manual cookie header",
                 metadata: [
                     "apiCookieNames": headers.apiCookieNames.joined(separator: ","),
                     "dashboardCookieNames": headers.dashboardCookieNames.joined(separator: ","),
@@ -167,11 +156,11 @@ struct AlibabaTokenPlanWebFetchStrategy: ProviderFetchStrategy {
             return headers
         }
 
-        if let envCookie = AlibabaTokenPlanSettingsReader.cookieHeader(environment: context.env),
-           let headers = AlibabaTokenPlanCookieHeaders(singleHeader: envCookie)
+        if let envCookie = QwenCloudSettingsReader.cookieHeader(environment: context.env),
+           let headers = QwenCloudCookieHeaders(singleHeader: envCookie)
         {
             Self.log.info(
-                "Alibaba Token Plan using environment cookie header",
+                "Qwen Cloud using environment cookie header",
                 metadata: [
                     "apiCookieNames": headers.apiCookieNames.joined(separator: ","),
                     "dashboardCookieNames": headers.dashboardCookieNames.joined(separator: ","),
@@ -182,11 +171,11 @@ struct AlibabaTokenPlanWebFetchStrategy: ProviderFetchStrategy {
 
         #if os(macOS)
         if allowCached,
-           let cached = Self.cachedCookieEntry(region: region),
-           let headers = AlibabaTokenPlanCookieHeaders(alibabaTokenPlanCachedHeader: cached.cookieHeader)
+           let cached = CookieHeaderCache.load(provider: .qwencloud),
+           let headers = QwenCloudCookieHeaders(qwenCloudCachedHeader: cached.cookieHeader)
         {
             Self.log.info(
-                "Alibaba Token Plan using cached browser cookie header",
+                "Qwen Cloud using cached browser cookie header",
                 metadata: [
                     "source": cached.sourceLabel,
                     "apiCookieNames": headers.apiCookieNames.joined(separator: ","),
@@ -198,31 +187,30 @@ struct AlibabaTokenPlanWebFetchStrategy: ProviderFetchStrategy {
 
         do {
             var importLog: [String] = []
-            let session = try AlibabaCodingPlanCookieImporter.importSession(
+            let session = try QwenCloudCookieImport.importSession(
                 browserDetection: context.browserDetection,
-                logger: { importLog.append($0) })
+                logger: { importLog.append($0) },
+                importOrder: Self.browserOrder)
             let rawCookieNames = session.cookies.map(\.name).filter { !$0.isEmpty }.uniquedSorted()
-            guard let headers = AlibabaTokenPlanCookieHeader.headers(
+            guard let headers = QwenCloudCookieHeader.headers(
                 from: session.cookies,
-                region: region,
                 environment: context.env)
             else {
                 Self.log.warning(
-                    "Alibaba Token Plan browser cookie header was empty",
+                    "Qwen Cloud browser cookie header was empty",
                     metadata: [
                         "source": session.sourceLabel,
                         "rawCookieNames": rawCookieNames.joined(separator: ","),
                     ])
-                throw AlibabaTokenPlanSettingsError.missingCookie(
-                    details: "No Alibaba Token Plan browser cookies were available after import.")
+                throw QwenCloudSettingsError.missingCookie(
+                    details: "No Qwen Cloud browser cookies were available after import.")
             }
             CookieHeaderCache.store(
-                provider: .alibabatokenplan,
-                scope: region.cookieCacheScope,
-                cookieHeader: headers.cacheAlibabaTokenPlanCookieHeader(),
+                provider: .qwencloud,
+                cookieHeader: headers.cacheQwenCloudCookieHeader(),
                 sourceLabel: session.sourceLabel)
             Self.log.info(
-                "Alibaba Token Plan imported browser cookies",
+                "Qwen Cloud imported browser cookies",
                 metadata: [
                     "source": session.sourceLabel,
                     "rawCookieNames": rawCookieNames.joined(separator: ","),
@@ -234,41 +222,19 @@ struct AlibabaTokenPlanWebFetchStrategy: ProviderFetchStrategy {
             return headers
         } catch {
             Self.log.warning(
-                "Alibaba Token Plan cookie resolution failed",
+                "Qwen Cloud cookie resolution failed",
                 metadata: ["error": error.localizedDescription])
-            throw AlibabaTokenPlanSettingsError.missingCookie(details: Self.missingCookieDetails(from: error))
+            throw QwenCloudSettingsError.missingCookie(details: Self.missingCookieDetails(from: error))
         }
         #else
-        throw AlibabaTokenPlanSettingsError.missingCookie()
+        throw QwenCloudSettingsError.missingCookie()
         #endif
     }
 
-    #if os(macOS)
-    /// The former unscoped cache only ever represented the China gateway. Never expose it to
-    /// International requests; migrate it into the China scope after a successful scoped write.
-    private static func cachedCookieEntry(region: AlibabaTokenPlanAPIRegion) -> CookieHeaderCache.Entry? {
-        if let scoped = CookieHeaderCache.load(provider: .alibabatokenplan, scope: region.cookieCacheScope) {
-            return scoped
-        }
-        guard region == .chinaMainland,
-              let legacy = CookieHeaderCache.load(provider: .alibabatokenplan)
-        else { return nil }
-
-        CookieHeaderCache.store(
-            provider: .alibabatokenplan,
-            scope: region.cookieCacheScope,
-            cookieHeader: legacy.cookieHeader,
-            sourceLabel: legacy.sourceLabel,
-            now: legacy.storedAt)
-        if let migrated = CookieHeaderCache.load(provider: .alibabatokenplan, scope: region.cookieCacheScope) {
-            CookieHeaderCache.clear(provider: .alibabatokenplan)
-            return migrated
-        }
-        return legacy
-    }
-    #endif
-
     private static func missingCookieDetails(from error: Error) -> String? {
+        if let error = error as? AliyunOneConsoleCookieImportError {
+            return error.details
+        }
         if case let AlibabaCodingPlanSettingsError.missingCookie(details) = error {
             return details
         }
@@ -277,7 +243,7 @@ struct AlibabaTokenPlanWebFetchStrategy: ProviderFetchStrategy {
     }
 }
 
-extension AlibabaTokenPlanUsageError {
+extension QwenCloudUsageError {
     fileprivate var isCredentialFailure: Bool {
         switch self {
         case .loginRequired, .invalidCredentials:
