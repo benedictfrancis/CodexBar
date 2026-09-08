@@ -2023,7 +2023,7 @@ enum CostUsageScanner {
         let sinceKey: String
         let untilKey: String
         private(set) var scanSinceKey: String
-        let scanUntilKey: String
+        private(set) var scanUntilKey: String
         let calendar: Calendar
 
         init(since: Date, until: Date, calendar: Calendar = .current) {
@@ -2041,9 +2041,10 @@ enum CostUsageScanner {
             CostUsageLocalDay.gregorianCalendar(matching: calendar)
         }
 
-        func retainingScanStart(_ scanSinceKey: String) -> Self {
+        func retainingScanWindow(since scanSinceKey: String, until scanUntilKey: String) -> Self {
             var retained = self
             retained.scanSinceKey = min(self.scanSinceKey, scanSinceKey)
+            retained.scanUntilKey = max(self.scanUntilKey, scanUntilKey)
             return retained
         }
 
@@ -4793,6 +4794,7 @@ enum CostUsageScanner {
 
                     guard
                         line.bytes.containsAscii(#""type":"event_msg""#)
+                        || line.bytes.containsAscii(#""event_msg""#)
                         || line.bytes.containsAscii(#""type":"turn_context""#)
                         || line.bytes.containsAscii(#""turn_context""#)
                         || line.bytes.containsAscii(#""type":"session_meta""#)
@@ -5337,7 +5339,7 @@ enum CostUsageScanner {
         // Called only after keepCachedCodexFileIfFresh failed. Forced rescans, priority invalidation,
         // and other paths that reread JSONL must still charge the file; the sole zero-work exception
         // is a validated same-size buffered replay.
-        guard let cached else { return max(0, metadata.size) }
+        guard let cached, cached.codexEventWhitespaceParsed == true else { return max(0, metadata.size) }
         if Self.isValidatedSameSizeBufferedCodexForkRetry(metadata: metadata, cached: cached) {
             return 0
         }
@@ -5393,6 +5395,9 @@ enum CostUsageScanner {
                 : nil
         })
         let needsPricingMetadataMigration = !pricingMetadataMigrationPathKeys.isEmpty
+        let eventWhitespaceMigrationPathKeys = Set(cache.files.compactMap { path, usage in
+            usage.codexEventWhitespaceParsed == true ? nil : Self.codexPathKey(URL(fileURLWithPath: path))
+        })
         let needsProjectMetadataMigration = cache.codexProjectMetadataVersion != Self.codexProjectMetadataVersion
         let modelsDevLoad = ModelsDevCache.load(now: now, cacheRoot: options.cacheRoot)
         let modelsDevCatalog = modelsDevLoad.artifact?.catalog
@@ -5470,9 +5475,11 @@ enum CostUsageScanner {
                 || priorityTurnsChanged)
         let cacheWideMigrationPendingPathKeys = pricingMetadataMigrationPathKeys
             .union(turnIDCacheMigrationPathKeys)
+            .union(eventWhitespaceMigrationPathKeys)
         let requiresCacheWideFileReprocessing = requiresAllFilesForCacheWideMigration
             || !cacheWideMigrationPendingPathKeys.isEmpty
         let shouldRefresh = options.forceRescan
+            || !eventWhitespaceMigrationPathKeys.isEmpty
             || windowExpanded
             || rootsChanged
             || needsPricingMetadataMigration
@@ -5733,7 +5740,11 @@ enum CostUsageScanner {
         let roots = Self.codexSessionsRoots(options: options)
         let hasTimeLimit = options.codexScanBudgetForTesting?.hasTimeLimit
             ?? ((options.maxCodexScanDurationPerRefresh ?? 0) > 0)
-        let retainedScanStart: String? = if let pending = cache.codexActiveLookbackState,
+        // Keep the full window until legacy and partially parsed files finish, even after their marker changes.
+        let unfinishedScanStart = cache.roots == Self.codexRootsFingerprint(roots)
+            && cache.files.values.contains { $0.codexEventWhitespaceParsed != true || $0.codexScanComplete == false }
+            ? cache.scanSinceKey : nil
+        var retainedScanStart: String? = if let pending = cache.codexActiveLookbackState,
                                             pending.rootPaths == roots.map(Self.codexResolvedPath).sorted()
         {
             pending.scanSinceKey
@@ -5742,12 +5753,17 @@ enum CostUsageScanner {
         } else {
             nil
         }
+        if let unfinishedScanStart {
+            retainedScanStart = [retainedScanStart, unfinishedScanStart].compactMap(\.self).min()
+        }
         let scanRange: CostUsageDayRange = if !options.forceRescan,
                                               cache.timeZoneIdentifier == range.calendar.timeZone.identifier,
-                                              cache.scanUntilKey == range.scanUntilKey,
+                                              cache.scanUntilKey == range.scanUntilKey || unfinishedScanStart != nil,
                                               let retainedScanStart
         {
-            range.retainingScanStart(retainedScanStart)
+            range.retainingScanWindow(
+                since: retainedScanStart,
+                until: cache.scanUntilKey ?? range.scanUntilKey)
         } else {
             range
         }

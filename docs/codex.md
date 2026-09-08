@@ -217,6 +217,9 @@ is limited, using additional rows when needed.
     existing priority-request evidence selects that mode. Stored token rows are repriced without a history rebuild.
     Rates follow the [OpenAI model card](https://developers.openai.com/api/docs/models/gpt-6-astra) and
     [pricing table](https://developers.openai.com/api/docs/pricing).
+  - Valid JSON whitespace between event fields is accepted during initial scans and appended-session refreshes.
+    Older cached files are reparsed once through the normal scan budget; compatible stores retain their rows and
+    checkpoints until each file is refreshed.
   - Native Codex logs parse `event_msg` token_count entries and `turn_context` model markers; when both are present,
     `turn_context` is authoritative for the model bucket.
   - pi and OMP sessions count assistant-message usage rows and attribute `openai-codex` assistant usage to Codex.
