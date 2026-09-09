@@ -142,3 +142,9 @@ In Icon and Percent mode, provider settings expose an Auto, Session, or Weekly p
 ### Inline cost chart inspection
 
 Hover over a daily bar in a provider menu’s cost chart to inspect its date, cost, and token count. The highlighted day follows the pointer and clears when it leaves the chart; missing or unpriced values remain unavailable. This does not change cost collection or Settings charts.
+
+### Daily spend ledger
+
+Usage & Spend includes a daily ledger for each currency group. Rows use the selected bucket time zone and app language, retain priced days when another day is unpriced, and mark unavailable amounts with a dash. Zero-usage rows require established common coverage; unknown activity is not described as idle. Narrow settings windows allow horizontal ledger scrolling. Source filtering and dashboard accounting remain authoritative.
+
+OpenCodex cost and request aggregates cover the selected history window, including All; older activity remains included alongside its token counts.
