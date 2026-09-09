@@ -110,13 +110,28 @@ struct AccountMenuLayoutPlannerTests {
         #expect(filtered.map(\.headroomPercent) == original.map(\.headroomPercent))
         #expect(filtered.map(\.isBestCandidate) == original.map(\.isBestCandidate))
         let row = try #require(filtered.first { $0.accountID == accounts[1].id })
-        #expect(row.constraintDetail == "Weekly 20%")
+        #expect(row.windowDetails.map(\.metricID) == ["secondary"])
+        #expect(row.windowDetails.first?.window.remainingPercent == 20)
         #expect(row.headroomPercent == 1)
         #expect(row.severity == .critical)
         let hidden = self.compactRows(in: AccountMenuLayoutPlanner.plan(
             accounts: accounts,
             hiddenMetricIDs: ["primary", "secondary", "claude-weekly-scoped-fable"]))
-        #expect(hidden.allSatisfy { $0.constraintDetail == nil })
+        #expect(hidden.flatMap(\.windowDetails).isEmpty)
+
+        var mostlyHidden = accounts
+        mostlyHidden[1] = self.account(
+            slot: 2,
+            email: "constrained@example.com",
+            sessionUsed: 99,
+            weeklyUsed: 20)
+        let fallback = self.compactRows(in: AccountMenuLayoutPlanner.plan(
+            accounts: mostlyHidden,
+            hiddenMetricIDs: ["primary"]))
+        let fallbackRow = try #require(fallback.first { $0.accountID == mostlyHidden[1].id })
+        #expect(fallbackRow.windowDetails.map(\.metricID) == ["secondary"])
+        #expect(fallbackRow.windowDetails.first?.window.remainingPercent == 80)
+        #expect(fallbackRow.headroomPercent == 1)
     }
 
     @Test
@@ -150,13 +165,15 @@ struct AccountMenuLayoutPlannerTests {
         let constrained = compacts[0]
         #expect(constrained.headroomPercent == 0)
         #expect(constrained.severity == .critical)
-        #expect(constrained.constraintDetail == "Fable 0% · Weekly 43%")
+        #expect(constrained.windowDetails.map(\.label) == ["Fable", "Weekly"])
+        #expect(constrained.windowDetails.map(\.window.remainingPercent) == [0, 43])
         #expect(!constrained.isBestCandidate)
 
         let best = compacts[1]
         #expect(best.severity == .healthy)
         #expect(best.isBestCandidate)
-        #expect(best.constraintDetail == nil)
+        #expect(best.windowDetails.map(\.label) == ["Session"])
+        #expect(best.windowDetails.first?.window.resetsAt == Self.now.addingTimeInterval(3600))
 
         #expect(plan.rows.last == .collapsedHealthy(count: 3))
     }

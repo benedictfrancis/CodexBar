@@ -4,9 +4,10 @@
 
 ### Added
 - Provider menus: choose visible usage rows per provider across full and compact menus, Settings previews, and Overview; retain hidden unavailable rows for restoration and sync selections without changing fetching or alerts (#3196, #3182). Thanks @psufka and @J2TeamNNL!
+- Account menus: show provider-reported reset times beside compact account quotas, keeping quota ownership, privacy redaction, and provider-specific reset wording intact (#3477). Thanks @TobitRE!
+- Inline cost charts: inspect each day’s localized date, cost, and token count by hovering over its bar, with a stable chart layout and unavailable values kept distinct (#3413). Thanks @666ghj!
 - Menu bar: choose Auto, Session, or Weekly percent windows in provider settings while preserving custom layout tokens and the global icon style (#3124). Thanks @J2TeamNNL!
 - Menu bar layouts: choose session or weekly reset countdowns and clocks, including conditional branches; preserve older layouts, schedule visible countdown changes, and avoid repeated VoiceOver wording (#3481, #3356). Thanks @vincent-peng!
-- Inline cost charts: inspect each day’s localized date, cost, and token count by hovering over its bar, with a stable chart layout and unavailable values kept distinct (#3413). Thanks @666ghj!
 - Usage & Spend: inspect a daily provider ledger with tokens, requests, and spend; preserve unknown amounts, common coverage, selected time zones, and existing dashboard views (#2635). Thanks @sahilaidev!
 
 ### Fixed

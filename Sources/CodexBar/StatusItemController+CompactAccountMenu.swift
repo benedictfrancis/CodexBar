@@ -2,7 +2,7 @@ import AppKit
 import CodexBarCore
 
 /// Shared renderer for the compact multi-account menu layout: full cards for the
-/// active and explicitly expanded accounts, one-line rows for the rest, and a
+/// active and explicitly expanded accounts, compact rows for the rest, and a
 /// summary row standing in for the collapsed healthy tail. Used by every
 /// multi-account presentation (claude-swap, token accounts, Codex accounts).
 extension StatusItemController {
@@ -147,14 +147,9 @@ extension StatusItemController {
                     menu.addItem(.separator())
                 }
                 let rowModel = MenuCardCompactAccountRowView.Model(
-                    label: PersonalInfoRedactor.redactEmail(
-                        compactRow.label,
-                        isEnabled: self.settings.hidePersonalInfo),
-                    headroomPercent: compactRow.headroomPercent,
-                    severity: compactRow.severity,
-                    constraintDetail: compactRow.constraintDetail,
-                    hasError: compactRow.hasError,
-                    showsBestBadge: compactRow.isBestCandidate)
+                    row: compactRow,
+                    resetTimeDisplayStyle: self.settings.resetTimeDisplayStyle,
+                    hidePersonalInfo: self.settings.hidePersonalInfo)
                 let accountID = compactRow.accountID
                 menu.addItem(self.makeMenuCardItem(
                     MenuCardCompactAccountRowView(

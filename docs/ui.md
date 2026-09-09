@@ -94,6 +94,14 @@ model-generic token label while the rendered menu-bar prefix and accessibility l
 - Claude capped Extra Usage follows the used/remaining fill preference; spending amounts and “% used” copy stay unchanged.
 - Codex OpenAI web extras: code review remaining and usage breakdown render when dashboard data is attached.
 - Token accounts: optional account switcher bar or stacked account cards (up to 6) when multiple manual tokens exist.
+- At four or more accounts, compact stacked rows show each constrained quota (up to two) with its own reset time.
+  Healthy rows show the quota with the least remaining capacity. Percentages and resets stay scoped to the same
+  account and window; a sooner reset on another quota does not replace the limiting quota's reset.
+- Compact rows use the existing Reset times countdown/absolute preference and shared formatter. Missing reset data
+  leaves the quota label and percentage visible without inventing a time. Long localized details wrap, and VoiceOver
+  includes the reset. Click a row to expand its full card; segmented cards keep their existing reset presentation.
+- Primary compact quotas honor the provider's menu-card reset policy: balance descriptions are not presented as
+  reset times, suppressed resets stay hidden, and provider-owned display text does not gain a reset prefix.
 - Token/cost, credit-usage breakdown, credits-history, and plan-history chart date labels retain their full text width
   in narrow menus. Credits and plan history reserve plot-edge space to avoid clipping; token/cost and usage-breakdown
   charts retain their automatic scale range. Shared styling uses a
