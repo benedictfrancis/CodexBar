@@ -2,6 +2,9 @@
 
 ## 0.58.1 — Unreleased
 
+### Performance
+- Codex activity: read scoped daily totals without decoding unused event history, preserving account boundaries, coverage, and incomplete-scan checks (#3528, related to #3247). Thanks @brzvsk!
+
 ## 0.58.0 — 2026-09-09
 
 ### Highlights
@@ -12,7 +15,7 @@
 
 ### Added
 - Usage & Spend: add a daily provider ledger for tokens, requests, and spend, honoring selected time zones and distinguishing unknown amounts from zero usage (#2635). Thanks @sahilaidev!
-- Inline cost charts: show each day's localized date, cost, and token count on hover without shifting the chart layout (#3413). Thanks @666ghj!
+- Inline cost charts: show each day’s localized date, cost, and token count on hover without shifting the chart layout (#3413). Thanks @666ghj!
 - Provider menus: choose visible usage rows across full and compact menus, Settings previews, and Overview; sync selections and restore hidden rows without changing fetching or alerts (#3196, #3182). Thanks @psufka and @J2TeamNNL!
 - Menu bar: choose Auto, Session, or Weekly percent windows in provider settings while preserving custom layout tokens and the global icon style (#3124). Thanks @J2TeamNNL!
 - Menu bar layouts: choose session or weekly reset countdowns and clocks, including conditional branches, with support for existing saved layouts (#3481, #3356). Thanks @vincent-peng!
