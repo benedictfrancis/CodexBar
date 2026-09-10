@@ -1,20 +1,28 @@
 # Changelog
 
-## 0.57.1 — Unreleased
+## 0.58.0 — 2026-09-09
+
+### Highlights
+- **Daily spend ledger:** inspect tokens, requests, and spending day by day in Usage & Spend, with your selected time zone and clear labels for unavailable amounts (#2635).
+- **More useful cost charts:** hover over a daily bar in the menu to see its date, cost, and token count (#3413).
+- **Menus that fit your workflow:** choose visible usage rows, select session or weekly percentages, and add explicit reset countdowns or clocks to menu-bar layouts (#3196, #3124, #3481).
+- **Clearer account quotas:** compact account rows now show reset times beside the quotas they belong to (#3477).
 
 ### Added
-- Provider menus: choose visible usage rows per provider across full and compact menus, Settings previews, and Overview; retain hidden unavailable rows for restoration and sync selections without changing fetching or alerts (#3196, #3182). Thanks @psufka and @J2TeamNNL!
-- Account menus: show provider-reported reset times beside compact account quotas, keeping quota ownership, privacy redaction, and provider-specific reset wording intact (#3477). Thanks @TobitRE!
-- Inline cost charts: inspect each day’s localized date, cost, and token count by hovering over its bar, with a stable chart layout and unavailable values kept distinct (#3413). Thanks @666ghj!
+- Usage & Spend: add a daily provider ledger for tokens, requests, and spend, honoring selected time zones and distinguishing unknown amounts from zero usage (#2635). Thanks @sahilaidev!
+- Inline cost charts: show each day’s localized date, cost, and token count on hover without shifting the chart layout (#3413). Thanks @666ghj!
+- Provider menus: choose visible usage rows across full and compact menus, Settings previews, and Overview; sync selections and restore hidden rows without changing fetching or alerts (#3196, #3182). Thanks @psufka and @J2TeamNNL!
 - Menu bar: choose Auto, Session, or Weekly percent windows in provider settings while preserving custom layout tokens and the global icon style (#3124). Thanks @J2TeamNNL!
-- Menu bar layouts: choose session or weekly reset countdowns and clocks, including conditional branches; preserve older layouts, schedule visible countdown changes, and avoid repeated VoiceOver wording (#3481, #3356). Thanks @vincent-peng!
-- Usage & Spend: inspect a daily provider ledger with tokens, requests, and spend; preserve unknown amounts, common coverage, selected time zones, and existing dashboard views (#2635). Thanks @sahilaidev!
+- Menu bar layouts: choose session or weekly reset countdowns and clocks, including conditional branches, with support for existing saved layouts (#3481, #3356). Thanks @vincent-peng!
+- Account menus: show reset times beside compact account quotas, keeping each time tied to its account and quota window and honoring privacy settings (#3477). Thanks @TobitRE!
 
 ### Fixed
 - OpenCodex local usage: aggregate costs and requests over the full requested history so All-history spend and daily ledger counts remain available (#2635).
-- Codex local costs: exclude inherited records before an explicit subagent history boundary, including files with no child-owned usage yet, and refresh older cached counts without discarding stored history (related to #3524). Thanks @vnnkl!
+- Codex local costs: exclude inherited records before an explicit subagent history boundary, including files with no child-owned usage yet, and refresh older cached counts without discarding stored history (#3527, related to #3524). Thanks @vnnkl!
 - Token counts: promote rounded `1000K` and `1000M` values to `1M` and `1B`, preserve ordinary precision, and handle the full signed integer range without crashing (#3519, fixes #3518). Thanks @harjothkhara!
-- Development: fail before Swift test discovery when Python lacks process-containment APIs, name the interpreter and missing capabilities, and document how to select a compatible Python (#3517, fixes #3515). Thanks @devYRPauli!
+
+### Development
+- Test runner: fail early when Python lacks required process-containment APIs and explain how to select a compatible interpreter (#3517, fixes #3515). Thanks @devYRPauli!
 
 ## 0.57.0 — 2026-09-08
 
