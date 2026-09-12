@@ -53,9 +53,22 @@ coverage, and recorded daily costs. This is machine-local history across account
 not the selected quota account's bill. Cost fetching cannot delay usage results.
 Both spending and service-status fetching can be disabled in Settings.
 
+Optional desktop notifications use Omarchy's existing notification daemon via
+`notify-send`. Enable them and choose a remaining-quota threshold in Settings.
+They fire on threshold crossings, observed reset-window changes with replenished
+quota, and service-status transitions. Startup, unchanged results, unknown data,
+and provider errors stay silent. Only one bar instance emits notifications. To
+avoid attributing an alert to the wrong account, notifications skip providers
+with multiple account rows; select one account for alerts. State is in memory and
+restarts quietly after shell reload. No account identities appear in notifications.
+
+Copy usage summary sends a plain-text, identity-free summary to the Wayland
+clipboard through `wl-copy`. Neither action needs another daemon or network port.
+
 Validation:
 
 ```sh
-node --test Integrations/Omarchy/test.mjs
+node --test Integrations/Omarchy/test.mjs Integrations/Omarchy/notifications.test.mjs
+python3 Integrations/Omarchy/test_install.py
 omarchy plugin validate Integrations/Omarchy
 ```

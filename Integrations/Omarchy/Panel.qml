@@ -1,9 +1,11 @@
 import QtQuick
 import QtQuick.Controls
+import Quickshell
 import Quickshell.Io
 import qs.Commons
 import qs.Ui
 import "Usage.js" as Usage
+import "Notifications.js" as Notices
 
 Panel {
     id: root
@@ -23,9 +25,13 @@ Panel {
     property double costUpdated: 0
     property string costOutput: ""
     property string costFailure: ""
+    property var noticeState: ({})
+    property string noticeSettings: ""
+    property string clipboardMessage: ""
     readonly property string request: JSON.stringify(Usage.command(settings))
     readonly property color foreground: bar ? bar.foreground : Color.foreground
-    readonly property bool stale: lastRefresh > 0 && (failure !== "" || now - lastRefresh > 600000)
+    readonly property bool stale: lastRefresh > 0 && (failure !== "" || now - lastRefresh >
+        Math.max(600000, (Number(setting("refreshSeconds", 300)) || 300) * 2000))
     implicitWidth: button.implicitWidth
     implicitHeight: button.implicitHeight
 
@@ -35,11 +41,25 @@ Panel {
         if (dataRequest !== request) {
             entries = [];
             lastRefresh = 0;
+            noticeState = {};
         }
         activeRequest = request;
         probe.command = JSON.parse(activeRequest);
         output = "";
         probe.running = true;
+    }
+    function notifyChanges(parsed) {
+        var configuration = JSON.stringify([request, setting("notifications", false), setting("notifyThreshold", 10)]);
+        if (noticeSettings !== configuration) { noticeState = {}; noticeSettings = configuration; }
+        var result = Notices.transition(noticeState, parsed, setting("notifyThreshold", 10));
+        noticeState = result.state;
+        if (!setting("notifications", false)) return;
+        // Each monitor has a widget; only the first bar sends desktop notifications.
+        if (bar && typeof bar.moduleWidgets === "function" && bar.moduleWidgets(moduleName)[0] !== root) return;
+        result.events.forEach(function(event) {
+            Quickshell.execDetached(["notify-send", "--app-name=CodexBar", "--",
+                "CodexBar · " + event.provider, event.message]);
+        });
     }
     function refreshCosts() {
         if (costProbe.running || !setting("showCosts", true)) return;
@@ -87,6 +107,13 @@ Panel {
         onTriggered: root.now = Date.now()
     }
     Process {
+        id: clipboard
+        command: ["wl-copy"]
+        stdinEnabled: true
+        onStarted: { write(Notices.summary(root.entries)); stdinEnabled = false; }
+        onExited: function(code) { root.clipboardMessage = code === 0 ? "Copied usage summary" : "Copy failed (wl-copy required)"; }
+    }
+    Process {
         id: costProbe
         stdout: StdioCollector { waitForEnd: true; onStreamFinished: root.costOutput = text }
         stderr: StdioCollector {}
@@ -111,11 +138,13 @@ Panel {
             }
             try {
                 var parsed = Usage.rows(root.output, root.setting("showIdentity", false));
+                root.notifyChanges(parsed);
                 root.entries = parsed;
                 root.dataRequest = root.activeRequest;
                 root.failure = "";
                 root.lastRefresh = Date.now();
             } catch (error) {
+                root.noticeState = {};
                 root.failure = code === 124 ? "Refresh timed out. Press R to retry." :
                     "Unable to fetch usage. Check the CLI path and provider login; press R to retry.";
             }
@@ -295,6 +324,14 @@ Panel {
                         enabled: !probe.running
                         onClicked: root.refresh()
                     }
+                    Button {
+                        focusable: true
+                        text: "Copy usage summary"
+                        visible: root.page === 0
+                        enabled: root.entries.length > 0 && !clipboard.running
+                        onClicked: { clipboard.stdinEnabled = true; clipboard.running = true; }
+                    }
+                    DetailText { text: root.clipboardMessage; visible: root.page === 0 && text !== "" }
                     DetailText { visible: root.page === 1 && !root.setting("showCosts", true); text: "Enable local spending in Settings." }
                     Column {
                         width: parent.width
@@ -310,29 +347,34 @@ Panel {
                             validator: RegularExpressionValidator { regularExpression: /^[a-z0-9-]+$/ }
                         }
                         DetailText { text: "Source" }
-                        ComboBox {
+                        Dropdown {
                             id: sourceInput
                             width: parent.width
-                            model: ["auto", "oauth", "cli", "api", "web"]
-                            currentIndex: Math.max(0, model.indexOf(root.setting("source", "auto")))
+                            options: ["auto", "oauth", "cli", "api", "web"]
+                            value: root.setting("source", "auto")
+                            onChanged: function(value) { sourceInput.value = value; }
                         }
                         DetailText { text: "Account number (0 uses the default; single provider only)" }
-                        SpinBox { id: accountInput; from: 0; to: 999; value: Number(root.setting("accountIndex", 0)) }
-                        CheckBox { id: allInput; text: "Show all accounts"; checked: root.setting("allAccounts", false) }
-                        CheckBox { id: identityInput; text: "Show account identity"; checked: root.setting("showIdentity", false) }
-                        CheckBox { id: costsInput; text: "Show local spending"; checked: root.setting("showCosts", true) }
-                        CheckBox { id: statusInput; text: "Fetch provider service status"; checked: root.setting("showStatus", true) }
+                        NumberField { onModified: function(next) { value = next; } id: accountInput; from: 0; to: 999; value: Number(root.setting("accountIndex", 0)) }
+                        Toggle { width: parent.width; onClicked: checked = !checked; id: allInput; label: "Show all accounts"; checked: root.setting("allAccounts", false) }
+                        Toggle { width: parent.width; onClicked: checked = !checked; id: identityInput; label: "Show account identity"; checked: root.setting("showIdentity", false) }
+                        Toggle { width: parent.width; onClicked: checked = !checked; id: costsInput; label: "Show local spending"; checked: root.setting("showCosts", true) }
+                        Toggle { width: parent.width; onClicked: checked = !checked; id: statusInput; label: "Service status"; checked: root.setting("showStatus", true) }
+                        Toggle { width: parent.width; onClicked: checked = !checked; id: noticesInput; label: "Notifications"; description: "Low quota, resets and service changes"; checked: root.setting("notifications", false) }
+                        DetailText { text: "Low quota threshold (%)" }
+                        NumberField { onModified: function(next) { value = next; } id: thresholdInput; from: 1; to: 99; value: Number(root.setting("notifyThreshold", 10)) }
                         DetailText { text: "Refresh interval in seconds" }
-                        SpinBox { id: intervalInput; from: 60; to: 3600; stepSize: 60; value: Number(root.setting("refreshSeconds", 300)) }
+                        NumberField { onModified: function(next) { value = next; } id: intervalInput; from: 60; to: 3600; stepSize: 60; value: Number(root.setting("refreshSeconds", 300)) }
                         Button {
                             focusable: true
                             text: "Apply"
                             enabled: providerInput.acceptableInput
                             onClicked: {
-                                root.saveSettings({provider: providerInput.text, source: sourceInput.currentText,
+                                root.saveSettings({provider: providerInput.text, source: sourceInput.value,
                                     accountIndex: accountInput.value, allAccounts: allInput.checked,
                                     showIdentity: identityInput.checked, showCosts: costsInput.checked,
-                                    showStatus: statusInput.checked, refreshSeconds: intervalInput.value});
+                                    showStatus: statusInput.checked, notifications: noticesInput.checked,
+                                    notifyThreshold: thresholdInput.value, refreshSeconds: intervalInput.value});
                                 root.page = 0;
                             }
                         }
