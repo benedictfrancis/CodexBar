@@ -6,6 +6,7 @@
 - z.ai: keep missing quota limits unavailable instead of displaying 100% remaining, preserving real zero usage, plan details, and optional analytics.
 - Antigravity: suppress remote model variants that exactly mirror a known pool and reset, preserve distinct quota rows and their saved visibility, and prefer known usage over reset-only duplicates (#3583). Thanks @hhh2210!
 - Codex: reject oversized numeric spend-limit reset timestamps without crashing, preserving valid limits and usage.
+- Web dashboard: preserve account aliases and organization labels so Claude accounts sharing an email remain distinguishable, including in redacted mode (follow-up to #3082).
 
 ### Development
 - Tests: fix native macOS SwiftPM test launches when Sparkle is staged beside the test bundle (from #3584). Thanks @hhh2210!
