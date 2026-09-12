@@ -23,12 +23,14 @@
 - Devin: honor hidden daily quotas even when the response includes daily usage, preserving weekly limits and extra balance (#3542). Thanks @dzienisz!
 - StepFun: keep credit plans without a populated balance from displaying exhausted five-hour and weekly quota bars, preserving genuine zero-credit balances and classic plan windows.
 - Grok: skip discarded local-history scans and version probes after terminal CLI billing failures, allowing fallback to start sooner (extracted from #3236). Thanks @Yuxin-Qiao!
+- Groq: reject unavailable, malformed, or overflowing Prometheus rates instead of showing nonnumeric usage or inventing zero, while preserving genuine empty-query results and API error messages.
 - Documentation: link the community-maintained CodexBar for Windows companion and AI Monitor USB desk display (#3525, #3544). Thanks @hinneslung and @tobymarks!
 
 ### Development
 - Checks: interrupt the process-cleanup fixture after ownership is observed, so slow child startup cannot invalidate the cleanup test.
 - Checks: isolate Claude usage-retry tests from unrelated authentication subprocess startup.
 - Checks: allow process-fixture startup on loaded Macs before measuring cleanup deadlines, retaining all process-ownership and timeout assertions.
+- Checks: make the atomic file-watcher fixture write its initial value once, preserving and verifying the replacement produced inside its callback.
 - Logging: update SwiftLog to 1.15.1 for corrected legacy log forwarding and Swift 6.5 WASI compatibility.
 - Linting: update SwiftLint to 0.65.1, Oxlint to 1.82.0, and Oxfmt to 0.67.0 for correctness and performance fixes, retaining verified macOS and Linux downloads.
 
