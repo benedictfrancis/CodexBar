@@ -16,7 +16,7 @@ Panel {
     property double lastRefresh: 0
     property string output: ""
     property int lastExitCode: -1
-    property bool settingsOpen: false
+    property int page: 0
     property string activeRequest: ""
     property string dataRequest: ""
     property var costEntries: []
@@ -66,10 +66,12 @@ Panel {
         function open(): void { root.open(); }
         function close(): void { root.close(); }
         function refresh(): void { root.refresh(); }
+        function view(index: int): void { root.page = Math.max(0, Math.min(2, index)); root.open(); }
         function status(): string {
             return JSON.stringify({running: probe.running, exitCode: root.lastExitCode,
                 outputBytes: root.output.length, providers: root.entries.length,
-                summary: Usage.summary(root.entries), failure: root.failure});
+                summary: Usage.summary(root.entries), failure: root.failure,
+                costProviders: root.costEntries.length, costFailure: root.costFailure, page: root.page});
         }
     }
     Timer {
@@ -173,12 +175,29 @@ Panel {
                         font.pixelSize: Style.font.heading
                         font.bold: true
                     }
+                    Row {
+                        width: parent.width
+                        spacing: Style.space(4)
+                        Repeater {
+                            model: ["Usage", "Spending", "Settings"]
+                            Button {
+                                focusable: true
+                                required property string modelData
+                                required property int index
+                                text: modelData
+                                width: (content.width - Style.space(8)) / 3
+                                selected: root.page === index
+                                onClicked: { root.page = index; scroll.contentY = 0; }
+                            }
+                        }
+                    }
                     DetailText {
+                        visible: root.page === 0
                         text: probe.running ? "Refreshing…" : root.failure || (root.lastRefresh ?
                             "Quota remaining · updated " + Qt.formatTime(new Date(root.lastRefresh), "HH:mm") : "Waiting for usage…")
                     }
                     Repeater {
-                        model: root.entries
+                        model: root.page === 0 ? root.entries : []
                         Column {
                             required property var modelData
                             width: content.width
@@ -245,7 +264,7 @@ Panel {
                     }
                     Column {
                         width: parent.width
-                        visible: root.setting("showCosts", true)
+                        visible: root.page === 1 && root.setting("showCosts", true)
                         spacing: Style.space(10)
                         DetailText { text: "LOCAL SPENDING · CODEX & CLAUDE"; font.bold: true }
                         DetailText { text: "All local sessions, independent of the selected account. List-price estimates are not invoices."; opacity: 0.65 }
@@ -259,11 +278,11 @@ Panel {
                                 required property var modelData
                                 width: content.width
                                 spacing: Style.space(5)
-                                DetailText { text: modelData.provider.toUpperCase() + " · " + modelData.provenance; font.bold: true }
+                                DetailText { text: modelData.provider.toUpperCase() + " · " + Usage.provenance(modelData.provenance); font.bold: true }
                                 DetailText { text: modelData.error; visible: text !== "" }
                                 DetailText { text: "Today " + Usage.money(modelData.today) + " · 30 days " + Usage.money(modelData.month) }
-                                DetailText { text: "Tokens · " + (modelData.tokens === null ? "Unavailable" : modelData.tokens.toLocaleString()) }
-                                DetailText { text: "Input " + (modelData.input ?? "—") + " · output " + (modelData.output ?? "—") + " · cached " + (modelData.cached ?? "—"); opacity: 0.7 }
+                                DetailText { text: "Tokens · " + Usage.count(modelData.tokens) }
+                                DetailText { text: "Input " + Usage.count(modelData.input) + " · output " + Usage.count(modelData.output) + " · cached " + Usage.count(modelData.cached); opacity: 0.7 }
                                 DetailText { text: modelData.coverage; opacity: 0.7 }
                                 UsageChart { width: parent.width; chart: modelData.chart; foreground: root.foreground }
                             }
@@ -271,17 +290,15 @@ Panel {
                     }
                     DetailText { visible: root.stale; text: "Showing older data"; color: Color.urgent }
                     Button {
+                        focusable: true
                         text: probe.running ? "Refreshing…" : "Refresh  ·  R"
                         enabled: !probe.running
                         onClicked: root.refresh()
                     }
-                    Button {
-                        text: root.settingsOpen ? "Hide settings" : "Settings"
-                        onClicked: root.settingsOpen = !root.settingsOpen
-                    }
+                    DetailText { visible: root.page === 1 && !root.setting("showCosts", true); text: "Enable local spending in Settings." }
                     Column {
                         width: parent.width
-                        visible: root.settingsOpen
+                        visible: root.page === 2
                         spacing: Style.space(8)
                         DetailText { text: "Provider ID (enabled uses your CodexBar configuration)" }
                         TextField {
@@ -308,6 +325,7 @@ Panel {
                         DetailText { text: "Refresh interval in seconds" }
                         SpinBox { id: intervalInput; from: 60; to: 3600; stepSize: 60; value: Number(root.setting("refreshSeconds", 300)) }
                         Button {
+                            focusable: true
                             text: "Apply"
                             enabled: providerInput.acceptableInput
                             onClicked: {
@@ -315,7 +333,7 @@ Panel {
                                     accountIndex: accountInput.value, allAccounts: allInput.checked,
                                     showIdentity: identityInput.checked, showCosts: costsInput.checked,
                                     showStatus: statusInput.checked, refreshSeconds: intervalInput.value});
-                                root.settingsOpen = false;
+                                root.page = 0;
                             }
                         }
                         DetailText { text: "Account selection changes this display only. Sign in and manage credentials with the provider CLI."; opacity: 0.7 }

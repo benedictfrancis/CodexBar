@@ -45,7 +45,10 @@ Column {
                 if (root.chart.kind === "line") {
                     if (index === 0) ctx.moveTo(step * (index + 0.5), y);
                     else ctx.lineTo(step * (index + 0.5), y);
-                } else ctx.fillRect(step * index + 1, Math.min(y, baseline), Math.max(1, step - 2), Math.max(1, Math.abs(baseline - y)));
+                } else {
+                    var barWidth = Math.max(1, Math.min(Style.space(16), step - 2));
+                    ctx.fillRect(step * (index + 0.5) - barWidth / 2, Math.min(y, baseline), barWidth, Math.max(1, Math.abs(baseline - y)));
+                }
             });
             if (root.chart.kind === "line") ctx.stroke();
         }

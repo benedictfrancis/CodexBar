@@ -79,6 +79,14 @@ function number(value) { return typeof value === "number" && isFinite(value) ? v
 
 function money(value) { return number(value) === null ? "Unavailable" : "$" + value.toFixed(2); }
 
+function count(value) {
+    return number(value) === null ? "—" : Math.round(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function provenance(value) {
+    return {listPriceEstimate: "List-price estimate", actual: "Reported cost", unknown: "Cost source unavailable"}[value] || value;
+}
+
 function costs(text, today) {
     if (!today) {
         var now = new Date();

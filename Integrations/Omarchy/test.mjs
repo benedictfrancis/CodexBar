@@ -68,6 +68,8 @@ test('generic charts bound data and keep negative values', () => {
     assert.equal(result.points.length, 1);
     assert.equal(result.points[0].value, -4);
     assert.equal(model.chart(null), null);
+    assert.equal(model.count(5358220), '5,358,220');
+    assert.equal(model.count(null), '—');
 });
 test('provider detail rows redact emails unless explicitly enabled', () => {
     const input = JSON.stringify({provider: 'codex', usage: {details: [{rows: [{label: 'Account', value: 'private@example.com'}]}]}});
