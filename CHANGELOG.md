@@ -24,6 +24,7 @@
 - Codex accounts: honor Hide Personal Info in switcher labels and tooltips, redact embedded workspace emails, and preserve distinct account numbers in narrow menus (#3551). Thanks @zenibako!
 - Claude accounts: show failed claude-swap activation errors before a slow ambient refresh finishes, preserving transaction serialization and configuration-change discard, and reject canceled adapter reads (extracted from #3452). Thanks @QuantIntellect!
 - Agent Sessions: add an opt-in setting to hide hosts whose session fetch failed, while keeping diagnostics visible by default (#3547). Thanks @warthurton!
+- Manus: reject empty and error-only credits envelopes in native and optional plugin fetching instead of displaying a false zero balance, preserving sparse responses and real zero credits.
 - Menu bar: align window and display coordinates so monitors above or below the primary display do not cause missed or false startup recovery.
 - Devin: honor hidden daily quotas even when the response includes daily usage, preserving weekly limits and extra balance (#3542). Thanks @dzienisz!
 - StepFun: keep credit plans without a populated balance from displaying exhausted five-hour and weekly quota bars, preserving genuine zero-credit balances and classic plan windows.
@@ -37,6 +38,7 @@
 - Checks: allow process-fixture startup on loaded Macs before measuring cleanup deadlines, retaining all process-ownership and timeout assertions.
 - Checks: make the atomic file-watcher fixture write its initial value once, preserving and verifying the replacement produced inside its callback.
 - Logging: update SwiftLog to 1.15.1 for corrected legacy log forwarding and Swift 6.5 WASI compatibility.
+- Checks: tolerate repeated kill delivery while a cleanup fixture's exit is pending, retaining termination order, grace-period, deadline, and confirmed-reap assertions.
 - Linting: update SwiftLint to 0.65.1, Oxlint to 1.82.0, and Oxfmt to 0.67.0 for correctness and performance fixes, retaining verified macOS and Linux downloads.
 
 ## 0.59.0 — 2026-09-10
