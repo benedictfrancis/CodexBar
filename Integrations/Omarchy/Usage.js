@@ -4,13 +4,14 @@ function remaining(window) {
     return Math.round(Math.max(0, Math.min(100, 100 - window.usedPercent)));
 }
 
-function rows(text) {
+function rows(text, showIdentity) {
     var decoded = JSON.parse(text);
     var entries = Array.isArray(decoded) ? decoded : [decoded];
     if (!entries.length || entries.some(function(e) { return !e || typeof e.provider !== "string"; }))
         throw new Error("Invalid usage response");
-    return entries.map(function(entry) {
+    return entries.map(function(entry, entryIndex) {
         var usage = entry.usage || {};
+        var identity = usage.identity || {};
         var windows = [];
         ["primary", "secondary", "tertiary"].forEach(function(key, index) {
             var window = usage[key];
@@ -23,6 +24,9 @@ function rows(text) {
         });
         return {
             provider: entry.provider,
+            accountLabel: showIdentity ? String(identity.accountEmail || usage.accountEmail || "") : "",
+            accountNumber: entryIndex + 1,
+            plan: String(identity.loginMethod || usage.loginMethod || ""),
             source: entry.source || "",
             windows: windows,
             updatedAt: usage.updatedAt || "",
@@ -33,11 +37,27 @@ function rows(text) {
     });
 }
 
+function command(settings) {
+    var provider = String(settings.provider || "codex");
+    var args = ["timeout", "--kill-after=5", "60", String(settings.executable || "codexbar"),
+        "usage", "--format", "json", "--json-only"];
+    if (provider !== "enabled") args.push("--provider", provider);
+    var source = String(settings.source || "auto");
+    if (source !== "auto") args.push("--source", source);
+    if (["enabled", "all", "both"].indexOf(provider) === -1) {
+        if (settings.allAccounts === true) args.push("--all-accounts");
+        else if (Number.isInteger(Number(settings.accountIndex)) && Number(settings.accountIndex) > 0)
+            args.push("--account-index", String(settings.accountIndex));
+    }
+    return args;
+}
+
 function summary(entries) {
-    return entries.map(function(entry) {
+    var label = entries.slice(0, 2).map(function(entry) {
         var label = entry.provider === "codex" ? "CX" : entry.provider === "claude" ? "CL" : entry.provider;
         return label + " " + (entry.windows.length ? entry.windows[0].remaining + "%" : "—");
     }).join("  ·  ");
+    return label + (entries.length > 2 ? "  +" + (entries.length - 2) : "");
 }
 
 function resetLabel(value, now) {

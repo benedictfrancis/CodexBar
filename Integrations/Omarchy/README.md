@@ -32,6 +32,15 @@ The `steipete.codexbar` entry in `~/.config/omarchy/shell.json` accepts `executa
 `provider`, and `refreshSeconds` (minimum 60). To remove the widget, remove its
 layout entry and user plugin directory, or use `omarchy plugin remove`.
 
+The popup's Settings section persists provider, source, account number, all-account
+display, identity visibility, and polling interval in the same layout entry. Use
+`enabled` to follow providers enabled in the CodexBar config. Account selectors
+apply only to single-provider queries and select the displayed account; they do
+not change the provider CLI's active login. Identity is hidden by default. The bar
+shows at most two account/provider summaries, with an overflow count; the popup
+shows all results. Changing provider/source discards the previous selection's
+data, including a response that completes after the selection changed.
+
 Validation:
 
 ```sh

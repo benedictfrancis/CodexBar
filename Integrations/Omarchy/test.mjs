@@ -33,3 +33,22 @@ test('reset countdown handles invalid and elapsed timestamps', () => {
     assert.equal(model.resetLabel('2025-12-31T23:00:00Z', now), 'Reset due · refresh to update');
     assert.equal(model.resetLabel('2026-01-01T01:30:00Z', now), 'Resets in 1h 30m');
 });
+test('account selection is scoped to a single provider and arguments never use a shell', () => {
+    const command = model.command({provider: 'both', allAccounts: true, accountIndex: 2});
+    assert.ok(!command.includes('--all-accounts'));
+    assert.ok(!command.includes('--account-index'));
+    assert.ok(!model.command({provider: 'enabled'}).includes('--provider'));
+    const single = model.command({provider: 'codex', allAccounts: true, source: 'oauth', executable: '/a path/codexbar'});
+    assert.ok(single.includes('--all-accounts'));
+    assert.ok(single.includes('/a path/codexbar'));
+    assert.ok(single.includes('oauth'));
+    assert.ok(!model.command({accountIndex: '2;bad'}).includes('--account-index'));
+});
+test('identity is opt-in and stays within its provider row', () => {
+    const input = JSON.stringify([{provider: 'codex', usage: {identity: {accountEmail: 'one@example.com', loginMethod: 'pro'}}},
+        {provider: 'claude', usage: {}}]);
+    assert.equal(model.rows(input)[0].accountLabel, '');
+    assert.equal(model.rows(input, true)[0].accountLabel, 'one@example.com');
+    assert.equal(model.rows(input, true)[1].accountLabel, '');
+    assert.equal(model.rows(input, true)[1].plan, '');
+});

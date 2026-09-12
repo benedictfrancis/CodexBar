@@ -16,6 +16,10 @@ Panel {
     property double lastRefresh: 0
     property string output: ""
     property int lastExitCode: -1
+    property bool settingsOpen: false
+    property string activeRequest: ""
+    property string dataRequest: ""
+    readonly property string request: JSON.stringify(Usage.command(settings))
     readonly property color foreground: bar ? bar.foreground : Color.foreground
     readonly property bool stale: lastRefresh > 0 && (failure !== "" || now - lastRefresh > 600000)
     implicitWidth: button.implicitWidth
@@ -23,8 +27,19 @@ Panel {
 
     function refresh() {
         if (probe.running) return;
+        if (dataRequest !== request) {
+            entries = [];
+            lastRefresh = 0;
+        }
+        activeRequest = request;
+        probe.command = JSON.parse(activeRequest);
         output = "";
         probe.running = true;
+    }
+    function saveSettings(changes) {
+        if (!bar || !bar.shell) return;
+        var merged = Object.assign({}, settings, changes);
+        bar.shell.updateEntryInline(moduleName, merged);
     }
     Component.onCompleted: Qt.callLater(refresh)
     onSettingsChanged: Qt.callLater(refresh)
@@ -53,16 +68,19 @@ Panel {
     }
     Process {
         id: probe
-        command: ["timeout", "60", String(root.setting("executable", "codexbar")), "usage",
-            "--provider", String(root.setting("provider", "codex")), "--format", "json", "--json-only"]
         stdout: StdioCollector { waitForEnd: true; onStreamFinished: root.output = text }
         // Provider diagnostics may contain personal data; never forward them to shell logs.
         stderr: StdioCollector {}
         onExited: function(code, status) {
             root.lastExitCode = code;
+            if (root.activeRequest !== root.request) {
+                Qt.callLater(root.refresh);
+                return;
+            }
             try {
-                var parsed = Usage.rows(root.output);
+                var parsed = Usage.rows(root.output, root.setting("showIdentity", false));
                 root.entries = parsed;
+                root.dataRequest = root.activeRequest;
                 root.failure = "";
                 root.lastRefresh = Date.now();
             } catch (error) {
@@ -76,7 +94,7 @@ Panel {
         id: button
         anchors.fill: parent
         bar: root.bar
-        text: (root.stale ? "! " : "") + (root.entries.length ? Usage.summary(root.entries) : "CX —")
+        text: (root.stale ? "! " : "") + (root.entries.length ? Usage.summary(root.entries) : "CodexBar —")
         tooltipText: "CodexBar · quota remaining\nClick for details · middle-click to refresh"
         onPressed: function(code) {
             if (code === Qt.MiddleButton || code === Qt.RightButton) root.refresh();
@@ -92,13 +110,22 @@ Panel {
         focusTarget: keys
         contentWidth: fittedContentWidth(Style.space(360))
         contentHeight: fittedContentHeight(content.implicitHeight, Style.space(560))
-        PanelKeyCatcher {
+        FocusScope {
             id: keys
             anchors.fill: parent
-            onCloseRequested: root.close()
-            onTabRequested: function(direction) { root.switchPanel(direction); }
-            onTextKey: function(text) { if (text.toLowerCase() === "r") root.refresh(); }
+            focus: true
+            Keys.priority: Keys.AfterItem
+            Keys.onPressed: function(event) {
+                if (event.key === Qt.Key_Escape) { root.close(); event.accepted = true; }
+                else if (event.key === Qt.Key_R && !providerInput.activeFocus) { root.refresh(); event.accepted = true; }
+                else if (event.key === Qt.Key_Down || event.key === Qt.Key_Up) {
+                    scroll.contentY = Math.max(0, Math.min(scroll.contentHeight - scroll.height,
+                        scroll.contentY + (event.key === Qt.Key_Down ? 40 : -40)));
+                    event.accepted = true;
+                }
+            }
             Flickable {
+                id: scroll
                 anchors.fill: parent
                 contentWidth: width
                 contentHeight: content.implicitHeight
@@ -130,6 +157,11 @@ Panel {
                                 text: modelData.provider.toUpperCase() + (modelData.source ? " · " + modelData.source : "")
                                 font.bold: true
                             }
+                            DetailText {
+                                text: (root.setting("showIdentity", false) ? modelData.accountLabel : "") || (root.setting("allAccounts", false) ? "Account " + modelData.accountNumber : "")
+                                visible: text !== ""
+                            }
+                            DetailText { text: modelData.plan; visible: text !== ""; opacity: 0.7 }
                             DetailText { text: modelData.error; visible: text !== "" }
                             Repeater {
                                 model: modelData.windows
@@ -164,9 +196,54 @@ Panel {
                     }
                     DetailText { visible: root.stale; text: "Showing older data"; color: Color.urgent }
                     Button {
+                        focusable: true
                         text: probe.running ? "Refreshing…" : "Refresh  ·  R"
                         enabled: !probe.running
                         onClicked: root.refresh()
+                    }
+                    Button {
+                        focusable: true
+                        text: root.settingsOpen ? "Hide settings" : "Settings"
+                        onClicked: root.settingsOpen = !root.settingsOpen
+                    }
+                    Column {
+                        width: parent.width
+                        visible: root.settingsOpen
+                        spacing: Style.space(8)
+                        DetailText { text: "Provider ID (enabled uses your CodexBar configuration)" }
+                        TextField {
+                            id: providerInput
+                            width: parent.width
+                            text: String(root.setting("provider", "codex"))
+                            placeholderText: "codex, claude, both, enabled…"
+                            selectByMouse: true
+                            validator: RegularExpressionValidator { regularExpression: /^[a-z0-9-]+$/ }
+                        }
+                        DetailText { text: "Source" }
+                        ComboBox {
+                            id: sourceInput
+                            width: parent.width
+                            model: ["auto", "oauth", "cli", "api", "web"]
+                            currentIndex: Math.max(0, model.indexOf(root.setting("source", "auto")))
+                        }
+                        DetailText { text: "Account number (0 uses the default; single provider only)" }
+                        SpinBox { id: accountInput; from: 0; to: 999; value: Number(root.setting("accountIndex", 0)) }
+                        CheckBox { id: allInput; text: "Show all accounts"; checked: root.setting("allAccounts", false) }
+                        CheckBox { id: identityInput; text: "Show account identity"; checked: root.setting("showIdentity", false) }
+                        DetailText { text: "Refresh interval in seconds" }
+                        SpinBox { id: intervalInput; from: 60; to: 3600; stepSize: 60; value: Number(root.setting("refreshSeconds", 300)) }
+                        Button {
+                            focusable: true
+                            text: "Apply"
+                            enabled: providerInput.acceptableInput
+                            onClicked: {
+                                root.saveSettings({provider: providerInput.text, source: sourceInput.currentText,
+                                    accountIndex: accountInput.value, allAccounts: allInput.checked,
+                                    showIdentity: identityInput.checked, refreshSeconds: intervalInput.value});
+                                root.settingsOpen = false;
+                            }
+                        }
+                        DetailText { text: "Account selection changes this display only. Sign in and manage credentials with the provider CLI."; opacity: 0.7 }
                     }
                 }
             }
