@@ -10,6 +10,8 @@
 
 class DesktopController : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QVariantList providers READ providers NOTIFY settingsChanged)
+    Q_PROPERTY(bool launchAtLogin READ launchAtLogin NOTIFY settingsChanged)
     Q_PROPERTY(QVariantList entries READ entries NOTIFY changed)
     Q_PROPERTY(QVariantList spending READ spending NOTIFY changed)
     Q_PROPERTY(QVariantMap settings READ settings NOTIFY settingsChanged)
@@ -26,6 +28,10 @@ public:
     explicit DesktopController(const QString &cliOverride, QObject *parent = nullptr);
     ~DesktopController() override;
     bool listen(const QString &socket);
+    QVariantList providers() const { return m_providers; }
+    bool launchAtLogin() const;
+    Q_INVOKABLE bool setLaunchAtLogin(bool enabled);
+    Q_INVOKABLE bool accountAction(const QString &provider, const QString &action);
     QVariantList entries() const { return m_entries; }
     QVariantList spending() const { return m_spending; }
     QVariantMap settings() const { return m_settings; }
@@ -33,7 +39,7 @@ public:
     QString costError() const { return m_costError; }
     QString configError() const { return m_configError; }
     QString summary() const { return m_summary; }
-    bool busy() const { return m_usage.state() != QProcess::NotRunning; }
+    bool busy() const { return m_usageBatch || m_usage.state() != QProcess::NotRunning; }
     bool costBusy() const { return m_cost.state() != QProcess::NotRunning; }
     bool stale() const;
     QString updated() const;
@@ -52,7 +58,13 @@ signals:
 private:
     QJSEngine m_engine;
     QJSValue m_usageModel, m_noticeModel, m_noticeState;
-    QProcess m_usage, m_cost;
+    QProcess m_usage, m_cost, m_catalog;
+    QVariantList m_providers, m_batchEntries;
+    QStringList m_pendingProviders;
+    QString m_currentProvider;
+    bool m_usageBatch = false, m_batchFailed = false;
+    void nextProvider();
+    void loadProviders();
     QTimer m_poll, m_clock;
     QLocalServer m_server;
     QVariantMap m_settings;
@@ -65,5 +77,5 @@ private:
     bool validate(QVariantMap &settings);
     void probe(QProcess &process, const QStringList &command, bool cost);
     void updateNotifications(const QVariantList &entries);
-    QJSValue call(const QJSValue &module, const QString &function, const QJSValueList &args);
+    QJSValue call(const QJSValue &module, const QString &function, const QJSValueList &args) const;
 };

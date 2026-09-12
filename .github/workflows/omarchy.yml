@@ -34,3 +34,17 @@ jobs:
           qmake6 ../../Integrations/Linux/codexbar-linux.pro
           make -j2
       - run: python3 Integrations/Linux/tests/test_desktop.py
+      - name: Test account terminal actions
+        run: |
+          mkdir -p .local/linux-account-tests
+          cd .local/linux-account-tests
+          qmake6 ../../Integrations/Linux/tests/accounts.pro
+          make -j2
+          ./tst_accounts
+      - run: python3 Integrations/Linux/tests/test_package.py
+      - name: Package desktop
+        run: python3 Integrations/Linux/package.py --version ci
+      - uses: actions/upload-artifact@v4
+        with:
+          name: codexbar-linux
+          path: .local/packages/*.tar.gz

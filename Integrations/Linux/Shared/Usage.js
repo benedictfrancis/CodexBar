@@ -112,10 +112,10 @@ function costs(text, today) {
     });
 }
 
-function summary(entries) {
+function summary(entries, mode) {
     var label = entries.slice(0, 2).map(function(entry) {
         var label = entry.provider === "codex" ? "CX" : entry.provider === "claude" ? "CL" : entry.provider;
-        return label + " " + (entry.windows.length ? entry.windows[0].remaining + "%" : "—");
+        return label + " " + (entry.windows.length ? quotaValue(entry.windows[0].remaining, mode) + "%" : "—");
     }).join("  ·  ");
     return label + (entries.length > 2 ? "  +" + (entries.length - 2) : "");
 }
@@ -134,4 +134,15 @@ function providerName(id) {
     var names = {codex: "Codex", claude: "Claude", copilot: "GitHub Copilot", gemini: "Gemini",
         cursor: "Cursor", antigravity: "Antigravity", openrouter: "OpenRouter", kiro: "Kiro"};
     return names[id] || (id ? id.charAt(0).toUpperCase() + id.slice(1) : "Unknown provider");
+}
+
+function quotaValue(remaining, mode) { return mode === "used" ? 100 - remaining : remaining; }
+
+function resetText(timestamp, now, mode) {
+    var date = new Date(timestamp);
+    if (!timestamp || !isFinite(date.getTime())) return "Reset time unavailable";
+    var absolute = date.toLocaleString();
+    if (mode === "absolute") return "Resets " + absolute;
+    if (mode === "both") return resetLabel(timestamp, now) + " · " + absolute;
+    return resetLabel(timestamp, now);
 }
