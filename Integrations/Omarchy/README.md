@@ -29,8 +29,8 @@ use Qt/D-Bus, so the app also works outside Omarchy.
 
 The `steipete.codexbar` layout entry in `~/.config/omarchy/shell.json` now accepts
 only `desktopExecutable` (default `codexbar-linux`) in addition to its ID. Configure
-providers, accounts, status, costs, notifications, and polling in the Settings
-window. Enabling the standalone tray is optional; Omarchy installation hides it
+providers and their order, accounts, status, costs, notifications, display, and polling in the Settings
+window. Enabling the standalone tray with quota meters is optional; Omarchy installation hides it
 to avoid a duplicate indicator.
 
 Remove the layout entry and `~/.config/omarchy/plugins/steipete.codexbar` to remove

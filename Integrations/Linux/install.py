@@ -33,7 +33,7 @@ def quoted(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--binary', type=Path, default=REPO / '.local/linux-build/codexbar-linux')
+    parser.add_argument('--binary', type=Path, default=REPO / ('bin/codexbar-linux' if (REPO / 'bin/codexbar-linux').exists() else '.local/linux-build/codexbar-linux'))
     parser.add_argument('--cli', type=Path)
     parser.add_argument('--omarchy', action='store_true')
     parser.add_argument('--no-autostart', action='store_true')
@@ -73,6 +73,7 @@ def main():
         settings['provider'] = args.provider
     if args.omarchy:
         settings['showTray'] = False
+        settings.setdefault('followOmarchyTheme', True)
     stamp = datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f')
     if preferences.exists():
         shutil.copy2(preferences, preferences.with_name(f'linux.json.backup-{stamp}'))

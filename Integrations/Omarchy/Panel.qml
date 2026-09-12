@@ -41,7 +41,7 @@ Panel {
         anchors.fill: parent
         bar: root.bar
         text: !root.available ? "CodexBar —" : (root.snapshot.stale ? "! " : "") + (root.snapshot.summary || "CodexBar —")
-        tooltipText: "CodexBar · quota remaining\nClick for usage · middle-click to refresh"
+        tooltipText: "CodexBar · quota " + (root.snapshot.quotaDisplay || "remaining") + "\nClick for usage · middle-click to refresh"
         onPressed: function(code) { if (code === Qt.MiddleButton) root.refresh(); else root.toggle(); }
     }
     KeyboardPanel {
@@ -78,17 +78,17 @@ Panel {
                                 Column {
                                     required property var modelData
                                     width: content.width; spacing: Style.space(4)
-                                    Caption { text: modelData.label + " · " + modelData.remaining + "% left" }
+                                    Caption { text: modelData.label + " · " + (modelData.displayValue === undefined ? modelData.remaining : modelData.displayValue) + "% " + (modelData.displaySuffix || "left") }
                                     Rectangle {
                                         width: parent.width; height: Style.space(5); radius: height / 2
                                         color: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.15)
                                         Rectangle {
-                                            width: parent.width * modelData.remaining / 100; height: parent.height; radius: height / 2
-                                            color: modelData.remaining <= 10 ? Color.urgent : Color.accent
+                                            width: parent.width * (modelData.displayValue === undefined ? modelData.remaining : modelData.displayValue) / 100; height: parent.height; radius: height / 2
+                                            color: modelData.warning ? Color.urgent : Color.accent
                                         }
                                     }
                                     Caption {
-                                        text: modelData.resetsAt ? "Resets " + Qt.formatDateTime(new Date(modelData.resetsAt), "ddd HH:mm") : ""
+                                        text: modelData.resetText || "Reset time unavailable"
                                         visible: text !== ""; opacity: 0.65
                                     }
                                 }

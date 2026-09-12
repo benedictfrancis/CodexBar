@@ -76,3 +76,12 @@ test('provider detail rows redact emails unless explicitly enabled', () => {
     assert.equal(model.rows(input)[0].details[0].rows[0].value, '[hidden email]');
     assert.equal(model.rows(input, true)[0].details[0].rows[0].value, 'private@example.com');
 });
+
+test('display preferences keep underlying quota and reset data intact', () => {
+    assert.equal(model.quotaValue(60, 'used'), 40);
+    assert.equal(model.quotaValue(60, 'remaining'), 60);
+    assert.equal(model.resetText('invalid', 0, 'absolute'), 'Reset time unavailable');
+    const time = '2030-01-01T00:00:00Z';
+    assert.ok(model.resetText(time, 0, 'absolute').startsWith('Resets '));
+    assert.ok(model.resetText(time, 0, 'both').includes(' · '));
+});
