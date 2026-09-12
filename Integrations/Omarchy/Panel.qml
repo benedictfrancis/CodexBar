@@ -196,11 +196,13 @@ Panel {
                     }
                     DetailText { visible: root.stale; text: "Showing older data"; color: Color.urgent }
                     Button {
+                        focusable: true
                         text: probe.running ? "Refreshing…" : "Refresh  ·  R"
                         enabled: !probe.running
                         onClicked: root.refresh()
                     }
                     Button {
+                        focusable: true
                         text: root.settingsOpen ? "Hide settings" : "Settings"
                         onClicked: root.settingsOpen = !root.settingsOpen
                     }
@@ -231,6 +233,7 @@ Panel {
                         DetailText { text: "Refresh interval in seconds" }
                         SpinBox { id: intervalInput; from: 60; to: 3600; stepSize: 60; value: Number(root.setting("refreshSeconds", 300)) }
                         Button {
+                            focusable: true
                             text: "Apply"
                             enabled: providerInput.acceptableInput
                             onClicked: {
