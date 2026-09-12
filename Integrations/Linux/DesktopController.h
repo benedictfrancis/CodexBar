@@ -58,7 +58,6 @@ private:
     QVariantMap m_settings;
     QVariantList m_entries, m_spending;
     QString m_configPath, m_error, m_costError, m_configError, m_summary;
-    QByteArray m_rawUsage;
     qint64 m_updated = 0, m_costUpdated = 0;
     int m_generation = 0;
     bool m_configBlocked = false;

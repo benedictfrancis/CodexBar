@@ -7,7 +7,7 @@ Frame {
     id: root
     required property var entry
     property color accent: palette.highlight
-    padding: 20
+    padding: 14
     Layout.fillWidth: true
     implicitHeight: content.implicitHeight + topPadding + bottomPadding
     ColumnLayout {
@@ -16,8 +16,8 @@ Frame {
         spacing: 12
         RowLayout {
             Layout.fillWidth: true
-            Label { text: root.entry.provider.toUpperCase(); font.bold: true; font.pixelSize: 18; Layout.fillWidth: true }
-            Label { text: root.entry.plan || ""; opacity: 0.65 }
+            Label { text: Usage.providerName(root.entry.provider); font.bold: true; font.pixelSize: 18; Layout.fillWidth: true; wrapMode: Text.Wrap }
+            Label { text: root.entry.plan || ""; opacity: 0.65; Layout.maximumWidth: root.width / 2; wrapMode: Text.Wrap; textFormat: Text.PlainText }
         }
         Label {
             text: root.entry.accountLabel || ""
@@ -36,11 +36,11 @@ Frame {
                 spacing: 6
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: modelData.label; Layout.fillWidth: true }
-                    Label { text: modelData.remaining + "% remaining"; font.bold: true }
+                    Label { text: modelData.label; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
+                    Label { text: modelData.remaining + "% left"; font.bold: true }
                 }
                 ProgressBar { Layout.fillWidth: true; from: 0; to: 100; value: modelData.remaining }
-                Label { text: Usage.resetLabel(modelData.resetsAt, clock.now); opacity: 0.65 }
+                Label { text: Usage.resetLabel(modelData.resetsAt, clock.now); opacity: 0.65; Layout.fillWidth: true; wrapMode: Text.Wrap }
                 Label { text: modelData.pace || ""; visible: text !== ""; Layout.fillWidth: true; wrapMode: Text.Wrap; opacity: 0.7 }
             }
         }

@@ -76,7 +76,7 @@ bool DesktopController::validate(QVariantMap &values) {
         if (!ok || number < min || number > max) { m_configError = QString("Invalid %1.").arg(key); return false; }
         values[key] = number;
     }
-    for (const auto &key : {"allAccounts", "showIdentity", "showCosts", "showStatus", "notifications", "showTray"})
+    for (const auto &key : {"allAccounts", "showIdentity", "showCosts", "showStatus", "notifications", "showTray", "refreshOnOpen"})
         values[key] = values.value(key).toBool();
     return true;
 }
@@ -84,7 +84,7 @@ bool DesktopController::validate(QVariantMap &values) {
 void DesktopController::loadSettings(const QString &cliOverride) {
     m_settings = {{"executable", "codexbar"}, {"provider", "codex"}, {"source", "auto"},
         {"refreshSeconds", 300}, {"accountIndex", 0}, {"notifyThreshold", 10}, {"allAccounts", false},
-        {"showIdentity", false}, {"showCosts", true}, {"showStatus", true}, {"notifications", false}, {"showTray", true}};
+        {"showIdentity", false}, {"showCosts", true}, {"showStatus", true}, {"notifications", false}, {"showTray", true}, {"refreshOnOpen", false}};
     m_configPath = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + "/codexbar/linux.json";
     QFile file(m_configPath);
     QVariantMap candidate = m_settings;
@@ -125,7 +125,7 @@ bool DesktopController::saveSettings(const QVariantMap &changes) {
         m_configError = "Cannot save application settings."; emit settingsChanged(); return false;
     }
     m_settings = next; m_configError.clear(); ++m_generation;
-    m_entries.clear(); m_spending.clear(); m_rawUsage.clear(); m_summary.clear();
+    m_entries.clear(); m_spending.clear(); m_summary.clear();
     m_updated = 0; m_costUpdated = 0; m_noticeState = m_engine.newObject();
     m_poll.start(m_settings.value("refreshSeconds").toInt() * 1000);
     emit settingsChanged(); emit changed(); refresh();
@@ -179,7 +179,7 @@ void DesktopController::probe(QProcess &process, const QStringList &command, boo
         } else if (cost) {
             m_spending = parsed.toVariant().toList(); m_costError.clear(); m_costUpdated = QDateTime::currentMSecsSinceEpoch();
         } else {
-            m_entries = parsed.toVariant().toList(); m_rawUsage = *output; m_error.clear();
+            m_entries = parsed.toVariant().toList(); m_error.clear();
             m_updated = QDateTime::currentMSecsSinceEpoch();
             m_summary = call(m_usageModel, "summary", {parsed}).toString();
             updateNotifications(m_entries);
@@ -223,6 +223,7 @@ void DesktopController::copySummary() {
 
 void DesktopController::showWindow(const QString &page) {
     if (page == "spending" && QDateTime::currentMSecsSinceEpoch() - m_costUpdated > 300000) refreshCosts();
+    if (page == "usage" && m_settings.value("refreshOnOpen").toBool()) refresh();
     emit windowRequested(page);
 }
 

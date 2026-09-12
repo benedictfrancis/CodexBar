@@ -37,7 +37,8 @@ KDE, GNOME, and other compositor sessions still need hands-on compatibility test
 
 ## Windows and behavior
 
-Settings controls provider/source selection, account index, all-account display,
+Settings is divided into General, Providers, and Advanced. It controls
+provider/source selection, account index, all-account display,
 identity visibility, refresh interval, status, local spending, notifications, and
 tray visibility. Account selectors choose displayed usage; they do not change the
 provider CLI's login. Provider support follows the installed CLI. Browser imports
@@ -50,7 +51,9 @@ calendar-day and 30-day estimates, token mix, provenance, and coverage. Estimate
 are not invoices. Opening spending scans independently of quota polling, with a
 five-minute cache; Refresh forces a new scan.
 
-Quota polling defaults to five minutes. Queries never overlap within each stream,
+Quota polling defaults to five minutes. Optional refresh-on-open updates usage
+when its window opens. Refresh and Ctrl+R update the selected tab independently;
+Ctrl+, opens Settings, and Ctrl+Q quits. Queries never overlap within each stream,
 stop after 60 seconds, and cap output at 8 MiB. Failed refreshes retain previous
 results with a stale indicator. Changing selection rejects old in-flight results.
 Optional notifications use the desktop's D-Bus notification service for remaining

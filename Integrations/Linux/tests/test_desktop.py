@@ -122,6 +122,30 @@ else:
         self.assertTrue(value['stale'])
         self.assertEqual(value['summary'], 'CX 60%')
 
+    def test_refresh_on_open_is_optional_and_does_not_scan_spending(self):
+        calls = self.root / 'calls.jsonl'
+        self.client('--usage')
+        time.sleep(0.15)
+        self.assertEqual(len(calls.read_text().splitlines()), 1)
+        self.client('--configure', '{"refreshOnOpen":true}')
+        self.wait_for(lambda value: bool(value.get('entries')) and not value['busy'])
+        previous = len(calls.read_text().splitlines())
+        self.client('--usage')
+        end = time.monotonic() + 4
+        while len(calls.read_text().splitlines()) == previous and time.monotonic() < end:
+            time.sleep(0.05)
+        self.assertEqual(len(calls.read_text().splitlines()), previous + 1)
+        for line in calls.read_text().splitlines():
+            self.assertEqual(json.loads(line)['args'][0], 'usage')
+
+    def test_failed_spending_preserves_previous_scan(self):
+        self.client('--spending')
+        self.wait_for(lambda value: value.get('costProviders') == 1 and not value['costBusy'])
+        (self.root / 'state.json').write_text('{"invalid":true}')
+        self.client('--refresh')
+        value = self.wait_for(lambda value: bool(value.get('costError')))
+        self.assertEqual(value['costProviders'], 1)
+
     def test_windows_and_cost_scan_use_existing_backend(self):
         pid = self.client('--snapshot')['pid']
         self.client('--settings')
