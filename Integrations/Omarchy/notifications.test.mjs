@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import test from 'node:test';
 
 const model = vm.createContext({});
-vm.runInContext(fs.readFileSync(new URL('./Notifications.js', import.meta.url), 'utf8'), model);
+vm.runInContext(fs.readFileSync(new URL('../Linux/Shared/Notifications.js', import.meta.url), 'utf8'), model);
 const row = (remaining, reset = '2026-01-01', statusLevel = 'none') => ({
     provider: 'codex', windows: [{key: 'primary', label: 'Session', remaining, resetsAt: reset}], statusLevel
 });

@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import test from 'node:test';
 
 const model = vm.createContext({});
-vm.runInContext(fs.readFileSync(new URL('./Usage.js', import.meta.url), 'utf8'), model);
+vm.runInContext(fs.readFileSync(new URL('../Linux/Shared/Usage.js', import.meta.url), 'utf8'), model);
 test('quota is clamped, missing quota stays unknown', () => {
     assert.equal(model.remaining({usedPercent: 28}), 72);
     assert.equal(model.remaining({usedPercent: 150}), 0);

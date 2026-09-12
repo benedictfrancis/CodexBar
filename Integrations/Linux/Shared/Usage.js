@@ -129,3 +129,9 @@ function resetLabel(value, now) {
     if (minutes < 1440) return "Resets in " + Math.floor(minutes / 60) + "h " + minutes % 60 + "m";
     return "Resets in " + Math.floor(minutes / 1440) + "d " + Math.floor(minutes % 1440 / 60) + "h";
 }
+
+function providerName(id) {
+    var names = {codex: "Codex", claude: "Claude", copilot: "GitHub Copilot", gemini: "Gemini",
+        cursor: "Cursor", antigravity: "Antigravity", openrouter: "OpenRouter", kiro: "Kiro"};
+    return names[id] || (id ? id.charAt(0).toUpperCase() + id.slice(1) : "Unknown provider");
+}
