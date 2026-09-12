@@ -20,10 +20,12 @@ Arch/Omarchy dependencies are listed below; Ubuntu packages are listed in
 needed for building).
 
 ```sh
-# After downloading the archive and its checksum into the same directory:
-sha256sum -c CodexBarDesktop-v<version>-linux-x86_64.tar.gz.sha256
-tar -xzf CodexBarDesktop-v<version>-linux-x86_64.tar.gz
-cd CodexBarDesktop-v<version>-linux-x86_64
+# Download the archive and its checksum into the same directory.
+# Replace <version> below with the downloaded version (use aarch64 for ARM64):
+archive='CodexBarDesktop-v<version>-linux-x86_64.tar.gz'
+sha256sum -c "$archive.sha256"
+tar -xzf "$archive"
+cd "${archive%.tar.gz}"
 python3 Integrations/Linux/install.py --cli /absolute/path/to/codexbar --omarchy
 ~/.local/bin/codexbar-linux --settings
 ```
