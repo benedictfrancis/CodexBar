@@ -1,13 +1,15 @@
-name: Omarchy integration
+name: Linux desktop and Omarchy
 on:
   pull_request:
     paths:
       - 'Integrations/Omarchy/**'
+      - 'Integrations/Linux/**'
       - '.github/workflows/omarchy.yml'
   push:
     branches: [main]
     paths:
       - 'Integrations/Omarchy/**'
+      - 'Integrations/Linux/**'
       - '.github/workflows/omarchy.yml'
 permissions:
   contents: read
@@ -21,3 +23,14 @@ jobs:
           node-version: '22'
       - run: node --test Integrations/Omarchy/test.mjs Integrations/Omarchy/notifications.test.mjs
       - run: python3 Integrations/Omarchy/test_install.py
+      - name: Install Qt 6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qt6-base-dev qt6-declarative-dev libqt6svg6 qml6-module-qtquick qml6-module-qtquick-controls qml6-module-qtquick-layouts qml6-module-qtquick-window qml6-module-qtquick-templates qml6-module-qtqml-workerscript
+      - name: Build desktop
+        run: |
+          mkdir -p .local/linux-build
+          cd .local/linux-build
+          qmake6 ../../Integrations/Linux/codexbar-linux.pro
+          make -j2
+      - run: python3 Integrations/Linux/tests/test_desktop.py
