@@ -41,6 +41,18 @@ shows at most two account/provider summaries, with an overflow count; the popup
 shows all results. Changing provider/source discards the previous selection's
 data, including a response that completes after the selection changed.
 
+Provider cards also display service status, pace summaries, and the CLI's generic
+detail sections with bar/line charts. Email values in detail rows are redacted
+unless identity display is enabled. Hover charts to inspect recorded values.
+Unknown data stays unavailable; absent daily history is not filled into charts.
+
+The separate Local Spending section scans Codex and Claude session history when
+the popup opens, caches it for five minutes, and refreshes alongside manual usage
+refreshes. It shows calendar-day cost, 30-day cost, token mix, provenance, history
+coverage, and recorded daily costs. This is machine-local history across accounts,
+not the selected quota account's bill. Cost fetching cannot delay usage results.
+Both spending and service-status fetching can be disabled in Settings.
+
 Validation:
 
 ```sh

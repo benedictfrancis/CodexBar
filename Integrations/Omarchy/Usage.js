@@ -20,13 +20,21 @@ function rows(text, showIdentity) {
             var minutes = window.windowMinutes;
             var label = minutes >= 1440 ? (minutes / 1440) + " day" :
                 minutes > 0 ? (minutes / 60) + " hour" : ["Session", "Weekly", "Additional"][index];
-            windows.push({label: label, remaining: left, resetsAt: window.resetsAt || ""});
+            windows.push({key: key, label: label, remaining: left, resetsAt: window.resetsAt || "",
+                pace: entry.pace && entry.pace[key] ? String(entry.pace[key].summary || "") : ""});
         });
         return {
             provider: entry.provider,
             accountLabel: showIdentity ? String(identity.accountEmail || usage.accountEmail || "") : "",
             accountNumber: entryIndex + 1,
             plan: String(identity.loginMethod || usage.loginMethod || ""),
+            status: entry.status ? String(entry.status.description || entry.status.indicator || "Unknown") : "",
+            details: Array.isArray(usage.details) ? usage.details.slice(0, 8).map(function(section) {
+                return {title: String(section.title || ""), rows: (section.rows || []).slice(0, 24).map(function(row) {
+                    return {label: String(row.label || ""), value: displayText(row.value, showIdentity),
+                        secondaryValue: displayText(row.secondaryValue, showIdentity)};
+                }), chart: chart(section.chart)};
+            }) : [],
             source: entry.source || "",
             windows: windows,
             updatedAt: usage.updatedAt || "",
@@ -44,12 +52,54 @@ function command(settings) {
     if (provider !== "enabled") args.push("--provider", provider);
     var source = String(settings.source || "auto");
     if (source !== "auto") args.push("--source", source);
+    if (settings.showStatus !== false) args.push("--status");
     if (["enabled", "all", "both"].indexOf(provider) === -1) {
         if (settings.allAccounts === true) args.push("--all-accounts");
         else if (Number.isInteger(Number(settings.accountIndex)) && Number(settings.accountIndex) > 0)
             args.push("--account-index", String(settings.accountIndex));
     }
     return args;
+}
+
+function displayText(value, showIdentity) {
+    var text = String(value || "").slice(0, 500);
+    return showIdentity ? text : text.replace(/[^\s@]+@[^\s@]+/g, "[hidden email]");
+}
+
+function chart(value) {
+    if (!value || !Array.isArray(value.points)) return null;
+    var points = value.points.slice(0, 120).filter(function(point) {
+        return point && typeof point.value === "number" && isFinite(point.value);
+    }).map(function(point) { return {label: String(point.label || ""), value: point.value}; });
+    return {title: String(value.title || ""), unit: String(value.unit || ""),
+        kind: value.kind === "line" ? "line" : "bars", points: points};
+}
+
+function number(value) { return typeof value === "number" && isFinite(value) ? value : null; }
+
+function money(value) { return number(value) === null ? "Unavailable" : "$" + value.toFixed(2); }
+
+function costs(text, today) {
+    if (!today) {
+        var now = new Date();
+        today = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+    }
+    var decoded = JSON.parse(text);
+    if (!Array.isArray(decoded) || decoded.some(function(row) { return !row || typeof row.provider !== "string"; }))
+        throw new Error("Invalid cost response");
+    return decoded.map(function(row) {
+        var totals = row.totals || {};
+        var daily = Array.isArray(row.daily) ? row.daily.slice(-30) : [];
+        var todayRow = daily.find(function(day) { return day.date === today; });
+        return {provider: row.provider, today: todayRow ? number(todayRow.totalCost) :
+                row.historyCoverageIsEstablished === true && !row.error ? 0 : null, month: number(row.last30DaysCostUSD),
+            tokens: number(row.last30DaysTokens), input: number(totals.inputTokens), output: number(totals.outputTokens),
+            cached: number(totals.cacheReadTokens), provenance: String(row.provenance || "unknown"),
+            coverage: row.historyCoverageIsEstablished === true ? "Local history" : "History may be incomplete",
+            error: row.error ? "Local cost history unavailable" : "",
+            chart: chart({title: "Recorded daily cost · USD", unit: "USD", kind: "bars",
+                points: daily.map(function(day) { return {label: day.date, value: day.totalCost}; })})};
+    });
 }
 
 function summary(entries) {

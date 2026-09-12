@@ -19,6 +19,10 @@ Panel {
     property bool settingsOpen: false
     property string activeRequest: ""
     property string dataRequest: ""
+    property var costEntries: []
+    property double costUpdated: 0
+    property string costOutput: ""
+    property string costFailure: ""
     readonly property string request: JSON.stringify(Usage.command(settings))
     readonly property color foreground: bar ? bar.foreground : Color.foreground
     readonly property bool stale: lastRefresh > 0 && (failure !== "" || now - lastRefresh > 600000)
@@ -26,6 +30,7 @@ Panel {
     implicitHeight: button.implicitHeight
 
     function refresh() {
+        if (opened) refreshCosts();
         if (probe.running) return;
         if (dataRequest !== request) {
             entries = [];
@@ -36,13 +41,26 @@ Panel {
         output = "";
         probe.running = true;
     }
+    function refreshCosts() {
+        if (costProbe.running || !setting("showCosts", true)) return;
+        costOutput = "";
+        costProbe.command = ["timeout", "--kill-after=5", "60", String(setting("executable", "codexbar")),
+            "cost", "--provider", "both", "--format", "json", "--days", "30"];
+        costProbe.running = true;
+    }
+    onOpenedChanged: if (opened && Date.now() - costUpdated > 300000) refreshCosts()
     function saveSettings(changes) {
         if (!bar || !bar.shell) return;
         var merged = Object.assign({}, settings, changes);
         bar.shell.updateEntryInline(moduleName, merged);
     }
     Component.onCompleted: Qt.callLater(refresh)
-    onSettingsChanged: Qt.callLater(refresh)
+    onSettingsChanged: {
+        if (output && dataRequest === request) {
+            try { entries = Usage.rows(output, setting("showIdentity", false)); } catch (error) {}
+        }
+        Qt.callLater(refresh);
+    }
     IpcHandler {
         target: root.ipcTarget
         function open(): void { root.open(); }
@@ -65,6 +83,18 @@ Panel {
         running: true
         repeat: true
         onTriggered: root.now = Date.now()
+    }
+    Process {
+        id: costProbe
+        stdout: StdioCollector { waitForEnd: true; onStreamFinished: root.costOutput = text }
+        stderr: StdioCollector {}
+        onExited: function(code) {
+            try {
+                root.costEntries = Usage.costs(root.costOutput);
+                root.costFailure = "";
+                root.costUpdated = Date.now();
+            } catch (error) { root.costFailure = "Local cost refresh failed. Previous results may be stale."; }
+        }
     }
     Process {
         id: probe
@@ -162,6 +192,7 @@ Panel {
                                 visible: text !== ""
                             }
                             DetailText { text: modelData.plan; visible: text !== ""; opacity: 0.7 }
+                            DetailText { text: modelData.status; visible: text !== ""; opacity: 0.7 }
                             DetailText { text: modelData.error; visible: text !== "" }
                             Repeater {
                                 model: modelData.windows
@@ -186,11 +217,55 @@ Panel {
                                         text: Usage.resetLabel(modelData.resetsAt, root.now)
                                         opacity: 0.65
                                     }
+                                    DetailText { text: modelData.pace; visible: text !== ""; opacity: 0.7 }
                                 }
                             }
                             DetailText {
                                 visible: modelData.credits !== null
                                 text: "Credits: " + modelData.credits
+                            }
+                            Repeater {
+                                model: modelData.details
+                                Column {
+                                    required property var modelData
+                                    width: content.width
+                                    spacing: Style.space(5)
+                                    DetailText { text: modelData.title; visible: text !== ""; font.bold: true }
+                                    Repeater {
+                                        model: modelData.rows
+                                        DetailText {
+                                            required property var modelData
+                                            text: modelData.label + ": " + modelData.value + (modelData.secondaryValue ? " · " + modelData.secondaryValue : "")
+                                        }
+                                    }
+                                    UsageChart { width: parent.width; chart: modelData.chart; foreground: root.foreground }
+                                }
+                            }
+                        }
+                    }
+                    Column {
+                        width: parent.width
+                        visible: root.setting("showCosts", true)
+                        spacing: Style.space(10)
+                        DetailText { text: "LOCAL SPENDING · CODEX & CLAUDE"; font.bold: true }
+                        DetailText { text: "All local sessions, independent of the selected account. List-price estimates are not invoices."; opacity: 0.65 }
+                        DetailText {
+                            text: costProbe.running ? "Loading local history…" : root.costFailure
+                            visible: text !== ""
+                        }
+                        Repeater {
+                            model: root.costEntries
+                            Column {
+                                required property var modelData
+                                width: content.width
+                                spacing: Style.space(5)
+                                DetailText { text: modelData.provider.toUpperCase() + " · " + modelData.provenance; font.bold: true }
+                                DetailText { text: modelData.error; visible: text !== "" }
+                                DetailText { text: "Today " + Usage.money(modelData.today) + " · 30 days " + Usage.money(modelData.month) }
+                                DetailText { text: "Tokens · " + (modelData.tokens === null ? "Unavailable" : modelData.tokens.toLocaleString()) }
+                                DetailText { text: "Input " + (modelData.input ?? "—") + " · output " + (modelData.output ?? "—") + " · cached " + (modelData.cached ?? "—"); opacity: 0.7 }
+                                DetailText { text: modelData.coverage; opacity: 0.7 }
+                                UsageChart { width: parent.width; chart: modelData.chart; foreground: root.foreground }
                             }
                         }
                     }
@@ -228,6 +303,8 @@ Panel {
                         SpinBox { id: accountInput; from: 0; to: 999; value: Number(root.setting("accountIndex", 0)) }
                         CheckBox { id: allInput; text: "Show all accounts"; checked: root.setting("allAccounts", false) }
                         CheckBox { id: identityInput; text: "Show account identity"; checked: root.setting("showIdentity", false) }
+                        CheckBox { id: costsInput; text: "Show local spending"; checked: root.setting("showCosts", true) }
+                        CheckBox { id: statusInput; text: "Fetch provider service status"; checked: root.setting("showStatus", true) }
                         DetailText { text: "Refresh interval in seconds" }
                         SpinBox { id: intervalInput; from: 60; to: 3600; stepSize: 60; value: Number(root.setting("refreshSeconds", 300)) }
                         Button {
@@ -236,7 +313,8 @@ Panel {
                             onClicked: {
                                 root.saveSettings({provider: providerInput.text, source: sourceInput.currentText,
                                     accountIndex: accountInput.value, allAccounts: allInput.checked,
-                                    showIdentity: identityInput.checked, refreshSeconds: intervalInput.value});
+                                    showIdentity: identityInput.checked, showCosts: costsInput.checked,
+                                    showStatus: statusInput.checked, refreshSeconds: intervalInput.value});
                                 root.settingsOpen = false;
                             }
                         }
