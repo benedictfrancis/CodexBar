@@ -110,13 +110,22 @@ Panel {
         focusTarget: keys
         contentWidth: fittedContentWidth(Style.space(360))
         contentHeight: fittedContentHeight(content.implicitHeight, Style.space(560))
-        PanelKeyCatcher {
+        FocusScope {
             id: keys
             anchors.fill: parent
-            onCloseRequested: root.close()
-            onTabRequested: function(direction) { root.switchPanel(direction); }
-            onTextKey: function(text) { if (text.toLowerCase() === "r") root.refresh(); }
+            focus: true
+            Keys.priority: Keys.AfterItem
+            Keys.onPressed: function(event) {
+                if (event.key === Qt.Key_Escape) { root.close(); event.accepted = true; }
+                else if (event.key === Qt.Key_R && !providerInput.activeFocus) { root.refresh(); event.accepted = true; }
+                else if (event.key === Qt.Key_Down || event.key === Qt.Key_Up) {
+                    scroll.contentY = Math.max(0, Math.min(scroll.contentHeight - scroll.height,
+                        scroll.contentY + (event.key === Qt.Key_Down ? 40 : -40)));
+                    event.accepted = true;
+                }
+            }
             Flickable {
+                id: scroll
                 anchors.fill: parent
                 contentWidth: width
                 contentHeight: content.implicitHeight
