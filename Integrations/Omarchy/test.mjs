@@ -52,3 +52,27 @@ test('identity is opt-in and stays within its provider row', () => {
     assert.equal(model.rows(input, true)[1].accountLabel, '');
     assert.equal(model.rows(input, true)[1].plan, '');
 });
+test('cost history preserves unknown amounts and uses the actual calendar day', () => {
+    const input = JSON.stringify([{provider: 'codex', sessionCostUSD: 99, last30DaysCostUSD: 5,
+        historyCoverageIsEstablished: true, daily: [{date: '2026-01-01', totalCost: 5}, {date: '2026-01-02', totalCost: null}]}]);
+    const row = model.costs(input, '2026-01-02')[0];
+    assert.equal(row.today, null);
+    assert.equal(row.month, 5);
+    assert.equal(row.chart.points.length, 1);
+    assert.equal(model.costs(input, '2026-01-03')[0].today, 0);
+    assert.equal(model.money(null), 'Unavailable');
+    assert.equal(model.money(0), '$0.00');
+});
+test('generic charts bound data and keep negative values', () => {
+    const result = model.chart({kind: 'line', points: [{label: 'a', value: -4}, {label: 'b', value: null}, {label: 'c', value: Infinity}]});
+    assert.equal(result.points.length, 1);
+    assert.equal(result.points[0].value, -4);
+    assert.equal(model.chart(null), null);
+    assert.equal(model.count(5358220), '5,358,220');
+    assert.equal(model.count(null), '—');
+});
+test('provider detail rows redact emails unless explicitly enabled', () => {
+    const input = JSON.stringify({provider: 'codex', usage: {details: [{rows: [{label: 'Account', value: 'private@example.com'}]}]}});
+    assert.equal(model.rows(input)[0].details[0].rows[0].value, '[hidden email]');
+    assert.equal(model.rows(input, true)[0].details[0].rows[0].value, 'private@example.com');
+});

@@ -28,7 +28,7 @@ if destination.exists():
     backup.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(destination, backup)
 destination.mkdir(parents=True, exist_ok=True)
-for name in ['manifest.json', 'Panel.qml', 'Usage.js']:
+for name in ['manifest.json', 'Panel.qml', 'Usage.js', 'UsageChart.qml']:
     shutil.copy2(source / name, destination / name)
 entry = None
 layout = data.setdefault('bar', {}).setdefault('layout', {})
