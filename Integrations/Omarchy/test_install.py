@@ -16,11 +16,17 @@ class InstallTests(unittest.TestCase):
                                          'idle': {'lock': 123}}))
             script = Path(__file__).with_name('install.py')
             environment = dict(os.environ, XDG_CONFIG_HOME=str(config))
-            for _ in range(2):
+            for attempt in range(2):
+                if attempt == 1:
+                    custom = json.loads(shell.read_text())
+                    custom['bar']['layout']['right'][0].update(provider='claude', refreshSeconds=900)
+                    shell.write_text(json.dumps(custom))
                 subprocess.run(['python3', str(script), '--executable', '/usr/bin/true'],
                                env=environment, check=True, capture_output=True)
             result = json.loads(shell.read_text())
             self.assertEqual(result['idle'], {'lock': 123})
+            self.assertEqual(result['bar']['layout']['right'][0]['provider'], 'claude')
+            self.assertEqual(result['bar']['layout']['right'][0]['refreshSeconds'], 900)
             self.assertEqual([e['id'] for e in result['bar']['layout']['right']],
                              ['steipete.codexbar', 'omarchy.clock'])
             manifests = list((shell.parent / 'plugins').glob('*/manifest.json'))

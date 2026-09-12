@@ -10,7 +10,7 @@ import tempfile
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--executable', required=True, type=Path)
-parser.add_argument('--provider', default='codex')
+parser.add_argument('--provider', help='Provider ID; preserves the existing selection on reinstall')
 args = parser.parse_args()
 executable = args.executable.resolve()
 if not executable.is_file() or not os.access(executable, os.X_OK):
@@ -28,7 +28,7 @@ if destination.exists():
     backup.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(destination, backup)
 destination.mkdir(parents=True, exist_ok=True)
-for name in ['manifest.json', 'Panel.qml', 'Usage.js', 'UsageChart.qml']:
+for name in ['manifest.json', 'Panel.qml', 'Usage.js', 'UsageChart.qml', 'Notifications.js']:
     shutil.copy2(source / name, destination / name)
 entry = None
 layout = data.setdefault('bar', {}).setdefault('layout', {})
@@ -41,7 +41,11 @@ for section in layout.values():
 if entry is None:
     entry = {'id': plugin_id}
     layout.setdefault('right', []).insert(0, entry)
-entry.update(executable=str(executable), provider=args.provider, refreshSeconds=300)
+entry['executable'] = str(executable)
+if args.provider is not None:
+    entry['provider'] = args.provider
+entry.setdefault('provider', 'codex')
+entry.setdefault('refreshSeconds', 300)
 with tempfile.NamedTemporaryFile(mode='w', dir=config, delete=False) as handle:
     temporary = Path(handle.name)
     json.dump(data, handle, indent=2)

@@ -25,10 +25,12 @@ function rows(text, showIdentity) {
         });
         return {
             provider: entry.provider,
+            failed: !!entry.error,
             accountLabel: showIdentity ? String(identity.accountEmail || usage.accountEmail || "") : "",
             accountNumber: entryIndex + 1,
             plan: String(identity.loginMethod || usage.loginMethod || ""),
             status: entry.status ? String(entry.status.description || entry.status.indicator || "Unknown") : "",
+            statusLevel: entry.status ? String(entry.status.indicator || "unknown") : "unknown",
             details: Array.isArray(usage.details) ? usage.details.slice(0, 8).map(function(section) {
                 return {title: String(section.title || ""), rows: (section.rows || []).slice(0, 24).map(function(row) {
                     return {label: String(row.label || ""), value: displayText(row.value, showIdentity),
