@@ -27,6 +27,8 @@
 - Centralize Chromium local-storage discovery, plugin management-auth policy, and Codex spend-limit number decoding.
 - Refresh Swift Crypto and KeyboardShortcuts, checksum-pinned lint tools, and CI/release build toolchains while retaining the Swift 6.2 and macOS deployment floors; isolate plugin typechecking from unrelated ancestor packages.
 
+- Tests: isolate Claude OAuth cooldown and refresh-gate preferences per fixture so reset and expiry checks cannot erase another test run’s state.
+
 ## 0.60.0 — 2026-09-12
 
 ### Highlights
