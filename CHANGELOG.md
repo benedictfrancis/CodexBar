@@ -1,17 +1,12 @@
 # Changelog
 
-## Unreleased
-
-### Fixed
-- OAuth: preserve reserved characters in Gemini, Antigravity, and Claude refresh requests while retaining credential ownership.
-
 ## 0.60.1 — 2026-09-12
 
 ### Highlights
 - **Faster Codex activity refreshes:** reuse unchanged local activity data instead of repeatedly validating and decoding it.
 - **More reliable account cards:** keep identity, usage, credits, and cached costs tied to the right account, and prefer fresh subscription dates.
 - **Clearer provider quotas:** distinguish unavailable z.ai limits from unused quotas and remove duplicate Antigravity rows without hiding distinct limits.
-- **Authentication fixes:** preserve special characters in Vertex AI refresh credentials and retain useful Antigravity failure details.
+- **Authentication fixes:** preserve special characters in Vertex AI, Gemini, Claude, and Antigravity refresh credentials, and retain useful Antigravity failure details.
 
 ### Performance
 - Codex activity: reuse validated SQLite and decoded aggregate state across unchanged refreshes, preserving replacement, writer, and compatibility invalidation (#3593, related to #3247). Thanks @brzvsk!
@@ -22,6 +17,7 @@
 - Account cards: keep Grok's cached local costs out of an account card that has no usage snapshot (#3604).
 - z.ai: keep missing quota limits unavailable instead of displaying 100% remaining, preserving real zero usage, plan details, and optional analytics (#3590).
 - Antigravity: suppress remote model variants that exactly mirror a known pool and reset, preserve distinct quota rows and their saved visibility, and prefer known usage over reset-only duplicates (#3583). Thanks @hhh2210!
+- OAuth: preserve reserved characters in Gemini, Antigravity, and Claude refresh requests while retaining credential ownership (#3609).
 - Vertex AI: preserve reserved characters in OAuth refresh credentials and reject successful responses that omit a usable access token (#3608).
 - Antigravity: preserve the attempted CLI failure when an unavailable IDE fallback would otherwise replace it with misleading desktop launch guidance (#3595, related to #3146). Thanks @gpgpbm4h4y-gif!
 - Grok: report an RPC deadline as a timeout even when process teardown closes stdout immediately (#3606).
