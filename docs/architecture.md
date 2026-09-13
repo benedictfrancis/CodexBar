@@ -31,6 +31,8 @@ read_when:
 - The login runner and `SubprocessRunner` share `ProcessTermination` and process-tree termination. Cancelling a login
   stops its child process, joins its progress callback task, and produces no failure alert. Timeouts retain captured
   diagnostic output, and inherited pipes cannot keep the caller waiting indefinitely.
+- Codex and Grok RPC clients share deadline selection through `RPCRequestTimeout`. The deadline wins before teardown
+  can report stdout EOF; each client keeps its protocol initialization, encoding, diagnostics, and error types.
 
 ## Concurrency & platform
 - Swift 6 strict concurrency enabled; prefer Sendable state and explicit MainActor hops.
@@ -55,14 +57,20 @@ read_when:
 - `UsageStore.menuCardInput` assembles cards for Settings, the live menu, and explicit account contexts. It owns common
   quota, pace, warning-marker, and display-preference projection. Settings retains diagnostics and all usage lanes;
   menus retain their cost display policy and account-scoped forecasts. An account context stays isolated even when empty.
+  Cards consume the reconciled Codex projection; the raw dashboard is not a separate model input.
 - App credential properties read directly from the config snapshot and delegate common string writes to the typed
   `SettingsStore` config accessor, which owns normalization, persistence, and secret-update logging. Field activation
   does not trigger credential loading. Legacy provider toggles are read only by the config migrator.
+- Token-cost publications own their snapshots, revisions, and source scope in one store. Raw and current-config readers
+  select from that same state while retaining confirmed-empty and unpublished distinctions. Provider settings and
+  plugin edits reuse Core's config upsert; their defaults and notification policies remain explicit.
 - The native status-item controller owns menu composition. Persistent refresh-row metrics are independent of menu
   rendering, and screenshot fixtures exercise the active card views. Legacy menu-layout resolution retains its
   rendering mode and projected layout without copying unused settings into a second state object.
 - `SettingsValue` owns whitespace and wrapping-quote normalization for config and provider settings. Readers retain
   their credential precedence, endpoint validation, and provider-specific decoding.
+- `ISO8601DateParser` owns fractional-first internet timestamp parsing with a whole-second fallback. Provider readers
+  retain their text extraction, whitespace, numeric timestamp, and custom-format policies; each parse owns its formatter.
 - Kilo's CLI fetch strategy and organization discovery share `KiloBearerTokenResolver` for auth-file loading.
   Vertex AI credential loading and renewal share display-only ID-token decoding; diagnostic fetch labels use
   `ProviderDiagnosticFetchAttempt` across the app and CLI.
@@ -87,6 +95,10 @@ read_when:
   `OneConsoleTokenPlanSnapshot` projection while retaining distinct public snapshot types and provider identities.
 - `StreamScanBuffer` supplies bounded overlap for Codex and Claude terminal-marker matching; command handling and
   session lifecycle remain provider-specific.
+- Codex's persistent and one-shot PTY readers share `CodexStatusMarkers`, including the marker lengths used for
+  bounded overlap. Cursor-query handling remains part of each terminal loop.
+- `UsageSnapshot.withAccountLabel` applies token-account fallback labels for the app and CLI while preserving the
+  provider's account ID and other identity fields. Codex visible-account labels keep their surface-specific policy.
 - Raw Chromium local-storage consumers share `ChromiumLocalStorageDiscovery`, retaining their own browser lists and
   origin decoders. Both plugin engines use the manifest's management-auth eligibility policy after adapting their
   engine-specific option values.
