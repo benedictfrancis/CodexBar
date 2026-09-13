@@ -1,39 +1,28 @@
 # Changelog
 
-## 0.60.1 — Unreleased
+## 0.60.1 — 2026-09-12
+
+### Highlights
+- **Faster Codex activity refreshes:** reuse unchanged local activity data instead of repeatedly validating and decoding it.
+- **More reliable account cards:** keep identity, usage, credits, and cached costs tied to the right account, and prefer fresh subscription dates.
+- **Clearer provider quotas:** distinguish unavailable z.ai limits from unused quotas and remove duplicate Antigravity rows without hiding distinct limits.
+- **Authentication fixes:** preserve special characters in Vertex AI refresh credentials and retain useful Antigravity failure details.
 
 ### Performance
 - Codex activity: reuse validated SQLite and decoded aggregate state across unchanged refreshes, preserving replacement, writer, and compatibility invalidation (#3593, related to #3247). Thanks @brzvsk!
 
 ### Fixed
-- Vertex AI: preserve reserved characters in OAuth refresh credentials and reject successful responses that omit a usable access token.
-- Token accounts: preserve provider account IDs when applying configured fallback labels in the app and CLI.
-- Grok: report an RPC deadline as a timeout even when process teardown closes stdout immediately.
-- Account cards: keep Grok's cached local costs out of an account card that has no usage snapshot.
-- Codex: prefer fresh authorized subscription dates over stale cache metadata, and keep empty account cards from inheriting another account's identity, usage, or credits.
-- Provider settings: preserve saved configuration for unavailable plugins when reordering providers, and localize Qoder and Qwen Cloud cookie-cache labels consistently.
-- Antigravity: preserve the attempted CLI failure when an unavailable IDE fallback would otherwise replace it with misleading desktop launch guidance (related to #3146). Thanks @gpgpbm4h4y-gif!
-- z.ai: keep missing quota limits unavailable instead of displaying 100% remaining, preserving real zero usage, plan details, and optional analytics.
+- Codex: prefer fresh authorized subscription dates over stale cache metadata, and keep empty account cards from inheriting another account's identity, usage, or credits (#3601).
+- Token accounts: preserve provider account IDs when applying configured fallback labels in the app and CLI (#3606).
+- Account cards: keep Grok's cached local costs out of an account card that has no usage snapshot (#3604).
+- z.ai: keep missing quota limits unavailable instead of displaying 100% remaining, preserving real zero usage, plan details, and optional analytics (#3590).
 - Antigravity: suppress remote model variants that exactly mirror a known pool and reset, preserve distinct quota rows and their saved visibility, and prefer known usage over reset-only duplicates (#3583). Thanks @hhh2210!
-- Codex: reject oversized numeric spend-limit reset timestamps without crashing, preserving valid limits and usage.
-- Web dashboard: preserve account aliases and organization labels so Claude accounts sharing an email remain distinguishable, including in redacted mode (follow-up to #3082).
-
-### Development
-- Share fractional-first ISO-8601 parsing across provider readers while retaining caller-specific normalization and numeric fallbacks.
-- Share token-account label projection, RPC request deadlines, and Codex terminal status markers across their consumers.
-- Keep one token-cost publication store, reuse provider-config updates, share menu metric conversion and lane selection, and remove obsolete card-model inputs.
-- Share Settings and menu card construction with explicit account contexts, and replace English cookie-subtitle parsing with provider-owned localization keys.
-- Keep runtime descriptor replacements consistent across lookup, ordered metadata, and CLI aliases, with synchronization owned by the descriptor store.
-- Share provider settings bindings, cookie pickers, deferred link actions, cookie-source persistence, and typed cookie snapshots; replace the app's mutable provider registry with its immutable generated catalog.
-- Remove retired menu views, unused provider helpers, and no-op credential-loading hooks; reuse shared config accessors and simplify redundant menu and account state.
-- Tests: fix native macOS SwiftPM test launches when Sparkle is staged beside the test bundle (from #3584). Thanks @hhh2210!
-- Tests: add contained native focused and skip-build commands, avoid redundant menu-fixture config writes, isolate expensive suites without relaxing deadlines, and restore CLI entry coverage on Apple-Silicon CI (#3584). Thanks @hhh2210!
-- Consolidate status feeds, legacy Keychain string operations, API-token strategies, quota presentation, test-runner detection, and checked usage totals under shared owners while preserving provider-specific behavior.
-- Share browser-profile cookie merging, legacy cookie-file encoding, short-lived import caches, OpenCode web parsing, OneConsole quota projection, and terminal scan buffers without merging provider identities or authentication policies.
-- Centralize Chromium local-storage discovery, plugin management-auth policy, and Codex spend-limit number decoding.
-- Refresh Swift Crypto and KeyboardShortcuts, checksum-pinned lint tools, and CI/release build toolchains while retaining the Swift 6.2 and macOS deployment floors; isolate plugin typechecking from unrelated ancestor packages.
-
-- Tests: isolate Claude OAuth cooldown and refresh-gate preferences per fixture so reset and expiry checks cannot erase another test run’s state.
+- Vertex AI: preserve reserved characters in OAuth refresh credentials and reject successful responses that omit a usable access token (#3608).
+- Antigravity: preserve the attempted CLI failure when an unavailable IDE fallback would otherwise replace it with misleading desktop launch guidance (#3595, related to #3146). Thanks @gpgpbm4h4y-gif!
+- Grok: report an RPC deadline as a timeout even when process teardown closes stdout immediately (#3606).
+- Codex: reject oversized numeric spend-limit reset timestamps without crashing, preserving valid limits and usage (#3589).
+- Web dashboard: preserve account aliases and organization labels so Claude accounts sharing an email remain distinguishable, including in redacted mode (#3591, follow-up to #3082).
+- Provider settings: preserve saved configuration for unavailable plugins when reordering providers, and localize Qoder and Qwen Cloud cookie-cache labels consistently (#3601, #3604).
 
 ## 0.60.0 — 2026-09-12
 
