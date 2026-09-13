@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.60.2 — Unreleased
 
 ### Fixed
 - Mistral: handle signed billing adjustments without intermediate overflow, reject unrepresentable counts without crashing, and retain valid costs when token totals or model rankings are unavailable.
