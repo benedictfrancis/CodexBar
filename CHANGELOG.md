@@ -25,6 +25,7 @@
 - Consolidate status feeds, legacy Keychain string operations, API-token strategies, quota presentation, test-runner detection, and checked usage totals under shared owners while preserving provider-specific behavior.
 - Share browser-profile cookie merging, legacy cookie-file encoding, short-lived import caches, OpenCode web parsing, OneConsole quota projection, and terminal scan buffers without merging provider identities or authentication policies.
 - Centralize Chromium local-storage discovery, plugin management-auth policy, and Codex spend-limit number decoding.
+- Refresh Swift Crypto and KeyboardShortcuts, checksum-pinned lint tools, and CI/release build toolchains while retaining the Swift 6.2 and macOS deployment floors; isolate plugin typechecking from unrelated ancestor packages.
 
 ## 0.60.0 — 2026-09-12
 
